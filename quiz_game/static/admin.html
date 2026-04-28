@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Admin — Live Leaderboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #f1f5f9; min-height: 100vh; padding: 24px;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  h1 { font-size: 1.6rem; color: #a78bfa; font-weight: 700; }
+  .stats {
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .stat {
+    background: #1e293b; border-radius: 10px; padding: 10px 18px;
+    text-align: center;
+  }
+  .stat .val { font-size: 1.4rem; font-weight: 700; color: #a78bfa; }
+  .stat .lbl { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+  .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  button {
+    padding: 10px 20px; border-radius: 10px; border: none;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.85; }
+  .btn-refresh  { background: #7c3aed; color: white; }
+  .btn-export   { background: #0f766e; color: white; }
+  .btn-winner   { background: #b45309; color: white; }
+  .btn-auto     { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+  .btn-auto.on  { background: #052e16; color: #86efac; border-color: #22c55e; }
+  .btn-reset    { background: #1e293b; color: #ef4444; border: 1px solid #ef4444; }
+
+  /* QR join box */
+  .join-box {
+    display: flex; align-items: center; gap: 24px;
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .join-box img { width: 130px; height: 130px; border-radius: 8px; background: white; }
+  .join-info h2 { font-size: 1rem; color: #a78bfa; font-weight: 700; margin-bottom: 6px; }
+  .join-url {
+    font-size: 1.1rem; font-weight: 700; color: #f1f5f9;
+    background: #0f172a; padding: 8px 14px; border-radius: 8px;
+    letter-spacing: 0.03em; word-break: break-all;
+  }
+  .join-info p { font-size: 0.8rem; color: #64748b; margin-top: 8px; }
+
+  /* Winner banner */
+  .winner-banner {
+    background: linear-gradient(135deg, #1c1040, #2d1060);
+    border: 1px solid #7c3aed; border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .winner-trophy { font-size: 2.5rem; }
+  .winner-info h2 { font-size: 1.3rem; color: #fbbf24; }
+  .winner-info p  { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
+  .winner-score {
+    margin-left: auto; text-align: right;
+  }
+  .winner-score .score { font-size: 1.6rem; font-weight: 700; color: #a78bfa; }
+  .winner-score .time  { font-size: 0.85rem; color: #64748b; margin-top: 2px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  thead tr { background: #1e293b; }
+  th {
+    padding: 12px 16px; text-align: left; font-size: 0.78rem;
+    color: #64748b; letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600;
+  }
+  td { padding: 13px 16px; border-bottom: 1px solid #1e293b; font-size: 0.95rem; }
+  tr:hover td { background: #1a2235; }
+
+  /* Rank rows */
+  tr.rank-1 td { color: #fbbf24; background: #1c1505; }
+  tr.rank-2 td { color: #cbd5e1; background: #111827; }
+  tr.rank-3 td { color: #d97706; background: #1c0f05; }
+
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 99px;
+    font-size: 0.8rem; font-weight: 600;
+  }
+  .pill-green  { background: #052e16; color: #86efac; }
+  .pill-blue   { background: #0c1a3d; color: #93c5fd; }
+  .pill-gray   { background: #1e293b; color: #64748b; }
+  .pill-done   { background: #052e16; color: #86efac; }
+  .pill-playing{ background: #1c1040; color: #a78bfa; }
+
+  .refresh-note {
+    font-size: 0.8rem; color: #475569; margin-top: 16px; text-align: right;
+  }
+
+  /* Winner popup */
+  .popup-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .popup-overlay.show { display: flex; }
+  .popup {
+    background: #1e293b; border-radius: 20px; padding: 40px;
+    text-align: center; max-width: 400px; width: 90%;
+    border: 1px solid #7c3aed; animation: popin 0.3s ease;
+  }
+  @keyframes popin {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  .popup .trophy { font-size: 4rem; margin-bottom: 12px; }
+  .popup h2 { font-size: 1.8rem; color: #fbbf24; margin-bottom: 8px; }
+  .popup .wname { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+  .popup .wdetail { color: #94a3b8; font-size: 0.9rem; }
+  .popup button { margin-top: 24px; background: #7c3aed; color: white; padding: 12px 32px; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎯 Quiz Event — Live Leaderboard</h1>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val" id="stat-players">—</div><div class="lbl">Players</div></div>
+    <div class="stat"><div class="val" id="stat-done">—</div><div class="lbl">Finished</div></div>
+    <div class="stat"><div class="val" id="stat-answers">—</div><div class="lbl">Answers</div></div>
+    <div class="stat"><div class="val" id="stat-updated">—</div><div class="lbl">Last refresh</div></div>
+  </div>
+</header>
+
+<div class="controls">
+  <button class="btn-refresh" onclick="refresh()">🔄 Refresh Now</button>
+  <button class="btn-export"  onclick="exportCSV()">📥 Export CSV</button>
+  <button class="btn-winner"  onclick="showWinnerPopup()">🏆 Announce Winner</button>
+  <button class="btn-auto"    id="btn-auto" onclick="toggleAuto()">⏱ Auto-refresh: OFF</button>
+  <button class="btn-reset"   onclick="resetAll()">🗑 Reset All Data</button>
+</div>
+
+<!-- QR / Join box -->
+<div class="join-box">
+  <img id="qr-img" src="/qr" alt="QR Code" onerror="this.style.display='none'">
+  <div class="join-info">
+    <h2>Scan to join the quiz</h2>
+    <div class="join-url" id="join-url">loading...</div>
+    <p>Players on the same Wi-Fi network can scan this QR code or type the URL above.</p>
+  </div>
+</div>
+
+<!-- Winner banner (top player) -->
+<div class="winner-banner" id="winner-banner" style="display:none">
+  <div class="winner-trophy">🥇</div>
+  <div class="winner-info">
+    <h2 id="w-name">—</h2>
+    <p id="w-phone">—</p>
+  </div>
+  <div class="winner-score">
+    <div class="score" id="w-score">—</div>
+    <div class="time"  id="w-time">—</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Phone</th>
+        <th>Score</th>
+        <th>Time taken</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="lb-body">
+      <tr><td colspan="6" style="text-align:center;color:#475569;padding:40px">
+        Click Refresh to load results
+      </td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="refresh-note" id="refresh-note"></div>
+
+<!-- Winner announcement popup -->
+<div class="popup-overlay" id="popup" onclick="closePopup()">
+  <div class="popup" onclick="event.stopPropagation()">
+    <div class="trophy">🏆</div>
+    <h2>Winner!</h2>
+    <div class="wname" id="popup-name">—</div>
+    <div class="wdetail" id="popup-detail">—</div>
+    <button onclick="closePopup()">Close</button>
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+let leaderboardData = [];
+let autoTimer = null;
+let totalAnswers = 0;
+
+async function refresh() {
+  try {
+    const fetchJSON = async (url) => {
+      const r = await fetch(url);
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(`${url} → ${r.status}: ${err.detail || r.statusText}`);
+      }
+      return r.json();
+    };
+    const [lb, players, answers] = await Promise.all([
+      fetchJSON(`${BASE}/admin/leaderboard`),
+      fetchJSON(`${BASE}/admin/players`),
+      fetchJSON(`${BASE}/admin/answers/all`)
+    ]);
+
+    leaderboardData = lb;
+    totalAnswers    = answers.length;
+    const finished  = lb.filter(p => p.finished).length;
+
+    // Update stats
+    document.getElementById('stat-players').textContent  = players.length;
+    document.getElementById('stat-done').textContent     = finished;
+    document.getElementById('stat-answers').textContent  = answers.length;
+    document.getElementById('stat-updated').textContent  =
+      new Date().toLocaleTimeString();
+
+    // Winner banner
+    if (lb.length > 0) {
+      const top = lb[0];
+      document.getElementById('winner-banner').style.display = 'flex';
+      document.getElementById('w-name').textContent  = top.name;
+      document.getElementById('w-phone').textContent = top.phone;
+      document.getElementById('w-score').textContent =
+        `${top.correct} / ${top.total_questions} correct`;
+      document.getElementById('w-time').textContent  =
+        top.time_taken_sec != null ? `${top.time_taken_sec}s` : 'No correct answers yet';
+    }
+
+    // Table rows
+    const tbody = document.getElementById('lb-body');
+    if (lb.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#475569;padding:40px">
+        No players yet</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = lb.map(p => {
+      const rowClass = p.rank <= 3 ? `rank-${p.rank}` : '';
+      const timeTxt  = p.time_taken_sec != null ? `${p.time_taken_sec}s` : '—';
+      const statusPill = p.finished
+        ? `<span class="pill pill-done">✅ Done</span>`
+        : `<span class="pill pill-playing">▶ Playing</span>`;
+      return `
+        <tr class="${rowClass}">
+          <td style="font-size:1.2rem">${p.medal}</td>
+          <td style="font-weight:600">${p.name}</td>
+          <td style="color:#64748b">${p.phone}</td>
+          <td><span class="pill pill-green">${p.correct} / ${p.total_questions}</span></td>
+          <td><span class="pill pill-blue">${timeTxt}</span></td>
+          <td>${statusPill}</td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('refresh-note').textContent =
+      `Last updated: ${new Date().toLocaleTimeString()} · ${lb.length} players`;
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('refresh-note').textContent = `❌ ${e.message}`;
+  }
+}
+
+function exportCSV() {
+  window.open(`${BASE}/admin/export/csv`, '_blank');
+}
+
+function showWinnerPopup() {
+  if (!leaderboardData.length) { alert('Refresh first!'); return; }
+  const w = leaderboardData[0];
+  document.getElementById('popup-name').textContent =
+    `${w.medal} ${w.name}`;
+  document.getElementById('popup-detail').textContent =
+    `Score: ${w.correct}/${w.total_questions} · Time: ${w.time_taken_sec != null ? w.time_taken_sec + 's' : 'N/A'} · ${w.phone}`;
+  document.getElementById('popup').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('popup').classList.remove('show');
+}
+
+function toggleAuto() {
+  const btn = document.getElementById('btn-auto');
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+    btn.textContent = '⏱ Auto-refresh: OFF';
+    btn.classList.remove('on');
+  } else {
+    autoTimer = setInterval(refresh, 8000);
+    btn.textContent = '⏱ Auto-refresh: ON (8s)';
+    btn.classList.add('on');
+    refresh();
+  }
+}
+
+async function resetAll() {
+  if (!confirm('Delete ALL player data? This cannot be undone.')) return;
+  try {
+    const r = await fetch(`${BASE}/admin/reset-all`, { method: 'DELETE' });
+    const d = await r.json();
+    alert(d.message || 'Done');
+    refresh();
+  } catch(e) {
+    alert('Reset failed: ' + e.message);
+  }
+}
+
+async function loadServerInfo() {
+  try {
+    const r = await fetch(`${BASE}/admin/server-info`);
+    const d = await r.json();
+    document.getElementById('join-url').textContent = d.player_url;
+    document.getElementById('qr-img').src = `/admin/qr?t=${Date.now()}`;
+  } catch(e) {
+    document.getElementById('join-url').textContent = window.location.origin + '/';
+  }
+}
+
+// Load on open
+loadServerInfo();
+refresh();
+</script>
+</body>
+</html>

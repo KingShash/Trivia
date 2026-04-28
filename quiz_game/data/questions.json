@@ -1,0 +1,122 @@
+[
+  {
+    "question": "What does 'API' stand for?",
+    "options": ["Application Programming Interface", "Automated Process Integration", "Advanced Programming Instructions", "Application Process Index"],
+    "answer": "Application Programming Interface",
+    "category": "Tech"
+  },
+  {
+    "question": "Which company created the Python programming language?",
+    "options": ["Google", "Microsoft", "Guido van Rossum / CWI", "Apple"],
+    "answer": "Guido van Rossum / CWI",
+    "category": "Tech"
+  },
+  {
+    "question": "What does 'HTTP' stand for?",
+    "options": ["HyperText Transfer Protocol", "High Traffic Transfer Process", "HyperText Transmission Path", "Hosted Transfer Text Protocol"],
+    "answer": "HyperText Transfer Protocol",
+    "category": "Tech"
+  },
+  {
+    "question": "Which data structure uses LIFO order?",
+    "options": ["Queue", "Stack", "Linked List", "Heap"],
+    "answer": "Stack",
+    "category": "Tech"
+  },
+  {
+    "question": "In SQL, which clause filters rows after grouping?",
+    "options": ["WHERE", "FILTER", "HAVING", "GROUP BY"],
+    "answer": "HAVING",
+    "category": "Tech"
+  },
+  {
+    "question": "What is the output of 2 ** 10 in Python?",
+    "options": ["20", "100", "512", "1024"],
+    "answer": "1024",
+    "category": "Tech"
+  },
+  {
+    "question": "Which HTTP status code means 'Not Found'?",
+    "options": ["200", "301", "404", "500"],
+    "answer": "404",
+    "category": "Tech"
+  },
+  {
+    "question": "What does 'Git' stand for?",
+    "options": ["Global Information Tracker", "Grouped Integration Tool", "Nothing — it's slang", "General Interface Terminal"],
+    "answer": "Nothing — it's slang",
+    "category": "Tech"
+  },
+  {
+    "question": "Which planet is closest to the Sun?",
+    "options": ["Venus", "Earth", "Mercury", "Mars"],
+    "answer": "Mercury",
+    "category": "Science"
+  },
+  {
+    "question": "What is the chemical formula for water?",
+    "options": ["HO", "H2O", "H3O", "OH2"],
+    "answer": "H2O",
+    "category": "Science"
+  },
+  {
+    "question": "How many bits are in one byte?",
+    "options": ["4", "6", "8", "16"],
+    "answer": "8",
+    "category": "Tech"
+  },
+  {
+    "question": "Which language runs natively in the browser?",
+    "options": ["Python", "Java", "JavaScript", "Ruby"],
+    "answer": "JavaScript",
+    "category": "Tech"
+  },
+  {
+    "question": "What year was the first iPhone released?",
+    "options": ["2005", "2006", "2007", "2008"],
+    "answer": "2007",
+    "category": "General"
+  },
+  {
+    "question": "What does 'RAM' stand for?",
+    "options": ["Random Access Memory", "Read-Only Access Module", "Rapid Application Memory", "Remote Access Module"],
+    "answer": "Random Access Memory",
+    "category": "Tech"
+  },
+  {
+    "question": "Which sorting algorithm has the best average time complexity?",
+    "options": ["Bubble Sort", "Selection Sort", "Quick Sort", "Insertion Sort"],
+    "answer": "Quick Sort",
+    "category": "Tech"
+  },
+  {
+    "question": "What is the capital of Japan?",
+    "options": ["Osaka", "Kyoto", "Hiroshima", "Tokyo"],
+    "answer": "Tokyo",
+    "category": "General"
+  },
+  {
+    "question": "In networking, what does 'DNS' stand for?",
+    "options": ["Data Network System", "Domain Name System", "Dynamic Node Service", "Direct Network Source"],
+    "answer": "Domain Name System",
+    "category": "Tech"
+  },
+  {
+    "question": "Which company owns GitHub?",
+    "options": ["Google", "Amazon", "Microsoft", "Meta"],
+    "answer": "Microsoft",
+    "category": "General"
+  },
+  {
+    "question": "What is the largest organ in the human body?",
+    "options": ["Liver", "Brain", "Skin", "Heart"],
+    "answer": "Skin",
+    "category": "Science"
+  },
+  {
+    "question": "Which of these is NOT a JavaScript framework?",
+    "options": ["React", "Vue", "Django", "Angular"],
+    "answer": "Django",
+    "category": "Tech"
+  }
+]
