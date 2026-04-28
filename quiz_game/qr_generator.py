@@ -24,7 +24,7 @@ def local_ip() -> str:
 
 
 def generate(port: int = 8000) -> str:
-    url = f"http://{local_ip()}:{port}/"
+    url = "https://trivia-elgoss.onrender.com/player.html"
     out = Path(__file__).parent / "static" / "qr_code.png"
 
     qr = qrcode.QRCode(
