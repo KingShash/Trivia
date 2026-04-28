@@ -71,6 +71,18 @@
   .progress-bar { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.4s ease; }
 
+  /* ── Timer ── */
+  .timer-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 99px; padding: 3px 12px;
+    font-size: 0.88rem; font-weight: 700; color: var(--purple-light);
+    transition: color 0.3s, border-color 0.3s;
+  }
+  .timer-pill.warn   { color: #f59e0b; border-color: #f59e0b; }
+  .timer-pill.urgent { color: var(--red); border-color: var(--red); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
   /* ── Question ── */
   .question-text {
     font-size: 1.15rem; font-weight: 600; line-height: 1.55;
@@ -161,6 +173,7 @@
   <div class="progress-wrap">
     <div class="progress-meta">
       <span class="q-num" id="q-num">Q 1 / 10</span>
+      <span class="timer-pill" id="timer">20:00</span>
       <span id="score-live">Score: 0</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
@@ -190,7 +203,8 @@
 </div>
 
 <script>
-const BASE = window.location.origin;
+const BASE        = window.location.origin;
+const QUIZ_LIMIT  = 20 * 60; // 20 minutes in seconds
 
 let SESSION_ID = localStorage.getItem('qsid');
 if (!SESSION_ID) {
@@ -204,10 +218,36 @@ let questions         = [];
 let currentIdx        = 0;
 let correctCount      = 0;
 let questionStartTime = Date.now();
+let timerSec          = QUIZ_LIMIT;
+let timerInterval     = null;
 
 function show(id) {
   ['register','loading','game','done'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('hidden', s !== id));
+}
+
+// ── Countdown timer ───────────────────────────────────
+function startTimer() {
+  timerSec = QUIZ_LIMIT;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerSec--;
+    const m   = Math.floor(timerSec / 60);
+    const s   = timerSec % 60;
+    const el  = document.getElementById('timer');
+    el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+    el.className   = timerSec <= 60 ? 'timer-pill urgent'
+                   : timerSec <= 300 ? 'timer-pill warn' : 'timer-pill';
+    if (timerSec <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      showDone(); // time's up — auto-submit
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
 // ── Register ─────────────────────────────────────────
@@ -227,9 +267,7 @@ async function registerPlayer() {
     const data = await res.json();
     if (data.status === 'registered' || data.status === 'already_registered') {
       await loadQuestions();
-    } else {
-      throw new Error('bad status');
-    }
+    } else { throw new Error('bad status'); }
   } catch {
     alert('Registration failed. Try again.');
     btn.disabled = false; btn.textContent = 'Join Game';
@@ -246,6 +284,7 @@ async function loadQuestions() {
     currentIdx   = 0;
     correctCount = 0;
     show('game');
+    startTimer();
     renderQuestion();
   } catch {
     alert('Failed to load questions. Refresh and try again.');
@@ -293,13 +332,10 @@ async function handleAnswer(qId, selected) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ session_id: SESSION_ID, question_id: qId, selected, elapsed_ms: elapsed })
     });
-
-    // Non-2xx (e.g. 500, 404) — skip silently
     if (!res.ok) { currentIdx++; setTimeout(renderQuestion, 300); return; }
 
     const data = await res.json();
 
-    // Already answered in a previous session — skip silently, count if correct
     if (data.status === 'already_answered') {
       if (data.correct) correctCount++;
       currentIdx++;
@@ -307,7 +343,6 @@ async function handleAnswer(qId, selected) {
       return;
     }
 
-    // Fresh answer — show feedback
     if (data.correct) {
       correctCount++;
       if (selectedBtn) selectedBtn.classList.add('correct');
@@ -335,15 +370,16 @@ async function handleAnswer(qId, selected) {
 
 // ── Done screen ───────────────────────────────────────
 async function showDone() {
-  const total   = questions.length;
-  let   timeSec = null;
+  stopTimer();
+  const total = questions.length;
+  let timeSec = null;
 
   try {
     const res = await fetch(`${BASE}/api/my-score?session_id=${SESSION_ID}`);
     if (res.ok) {
       const sc = await res.json();
-      if (typeof sc.correct === 'number')         correctCount = sc.correct;
-      if (typeof sc.total_time_sec === 'number')  timeSec      = sc.total_time_sec;
+      if (typeof sc.correct === 'number')        correctCount = sc.correct;
+      if (typeof sc.total_time_sec === 'number') timeSec      = sc.total_time_sec;
     }
   } catch {}
 
@@ -362,20 +398,16 @@ async function showDone() {
 
   document.getElementById('done-icon').textContent  = icon;
   document.getElementById('done-title').textContent = title;
-
   document.getElementById('done-session').textContent =
-    `Session: ${SESSION_ID} — debug: /api/debug-score?session_id=${SESSION_ID}`;
+    `Session: ${SESSION_ID}`;
 
   show('done');
   document.getElementById('progress-fill').style.width = '100%';
 }
 
-// ── Play again — wipes stale DB record then reloads ──
-async function playAgain() {
-  try {
-    await fetch(`${BASE}/api/my-session?session_id=${SESSION_ID}`, { method: 'DELETE' });
-  } catch {}
-  localStorage.removeItem('qsid');
+// ── Play again — keeps old score in leaderboard, just starts a new session ──
+function playAgain() {
+  localStorage.removeItem('qsid'); // new UUID on reload, old record stays in DB
   location.reload();
 }
 
