@@ -76,3 +76,7 @@ def serve_qr(request: Request):
     png  = make_qr_png(base)
     return Response(content=png, media_type="image/png",
                     headers={"Cache-Control": "no-store"})
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
