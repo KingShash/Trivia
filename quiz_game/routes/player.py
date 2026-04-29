@@ -72,7 +72,8 @@ def current_question():
     q      = qs[cq - 1]
     q_data = {"id": cq, "question": q["question"], "options": q["options"]}
     if q.get("image"):
-        q_data["image"] = q["image"]
+        q_data["image"]    = q["image"]
+        q_data["image_bg"] = q.get("image_bg", "#ffffff")
     return {
         "status":       "active",
         "question_num": cq,

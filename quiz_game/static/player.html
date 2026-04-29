@@ -359,7 +359,8 @@ function renderQuestion(q, qNum, total) {
   // Show logo image if this question has one
   const imgWrap = document.getElementById('q-image');
   if (q.image) {
-    imgWrap.innerHTML     = `<img src="${q.image}" alt="Logo" onerror="this.style.display='none'">`;
+    const bg = q.image_bg || '#ffffff';
+    imgWrap.innerHTML     = `<img src="${q.image}" alt="Logo" style="background:${bg}" onerror="this.style.display='none'">`;
     imgWrap.style.display = '';
   } else {
     imgWrap.style.display = 'none';
@@ -467,25 +468,12 @@ function shake(id) {
   setTimeout(() => { el.style.borderColor = ''; }, 1500);
 }
 
-// ── Auto-rejoin on reload if already registered ────────
-(async function init() {
+// ── Init — always show register screen, pre-fill name if available ────
+(function init() {
   const storedName = localStorage.getItem('pname');
-  if (!SESSION_ID || !storedName) { show('register'); return; }
-
-  // Try to silently re-register with stored name
-  try {
-    const res = await fetch(`${BASE}/api/register`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ name: storedName, phone: '', session_id: SESSION_ID })
-    });
-    const data = await res.json();
-    if (data.status === 'registered' || data.status === 'already_registered') {
-      registered = true;
-      show('waiting');
-      startPolling();
-      return;
-    }
-  } catch {}
+  if (storedName) {
+    document.getElementById('inp-name').value = storedName;
+  }
   show('register');
 })();
 </script>

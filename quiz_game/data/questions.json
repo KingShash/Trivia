@@ -23,36 +23,42 @@
     "question": "Yeh logo kis company ka hai?",
     "options": ["JBL", "Skullcandy", "Beats", "Sony"],
     "answer": "Beats",
-    "image": "https://logo.clearbit.com/beatsbydre.com"
+    "image": "/static/images/logo-beats.svg",
+    "image_bg": "#E30B2A"
   },
   {
     "question": "Yeh logo kis company ka hai?",
     "options": ["OYO", "Airbnb", "Booking.com", "Trivago"],
     "answer": "Airbnb",
-    "image": "https://logo.clearbit.com/airbnb.com"
+    "image": "/static/images/logo-airbnb.svg",
+    "image_bg": "#FF5A5F"
   },
   {
     "question": "Yeh logo kis company ka hai?",
     "options": ["Google Drive", "OneDrive", "Dropbox", "Box"],
     "answer": "Dropbox",
-    "image": "https://logo.clearbit.com/dropbox.com"
+    "image": "/static/images/logo-dropbox.svg",
+    "image_bg": "#FFFFFF"
   },
   {
     "question": "Yeh logo kis company ka hai?",
     "options": ["Discord", "Slack", "Teams", "Zoom"],
     "answer": "Slack",
-    "image": "https://logo.clearbit.com/slack.com"
+    "image": "/static/images/logo-slack.svg",
+    "image_bg": "#1a1d21"
   },
   {
     "question": "Yeh logo kis company ka hai?",
     "options": ["PayPal", "Pinterest", "Patreon", "PUMA"],
     "answer": "Pinterest",
-    "image": "https://logo.clearbit.com/pinterest.com"
+    "image": "/static/images/logo-pinterest.svg",
+    "image_bg": "#E60023"
   },
   {
     "question": "Yeh logo kis company ka hai?",
     "options": ["Quora", "Qwik", "Quizlet", "Qualcomm"],
     "answer": "Quora",
-    "image": "https://logo.clearbit.com/quora.com"
+    "image": "/static/images/logo-quora.svg",
+    "image_bg": "#B92B27"
   }
 ]

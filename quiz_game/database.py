@@ -40,7 +40,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS game_state (
             id                  INTEGER PRIMARY KEY CHECK (id = 1),
             current_question    INTEGER NOT NULL DEFAULT 0,
-            question_started_at TEXT
+            question_started_at TEXT,
+            question_order      TEXT
         );
         INSERT OR IGNORE INTO game_state (id, current_question) VALUES (1, 0);
     """)

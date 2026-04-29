@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from database import init_db
 from routes.player import router as player_router
 from routes.admin  import router as admin_router
@@ -55,6 +56,8 @@ app.add_middleware(
 
 app.include_router(player_router)
 app.include_router(admin_router)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
