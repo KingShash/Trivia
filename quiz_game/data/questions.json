@@ -51,7 +51,7 @@
     "question": "Yeh logo kis company ka hai?",
     "options": ["PayPal", "Pinterest", "Patreon", "PUMA"],
     "answer": "Pinterest",
-    "image": "/static/images/logo-pinterest.svg",
+    "image": "/static/images/logo-pinterest.png",
     "image_bg": "#E60023"
   },
   {
