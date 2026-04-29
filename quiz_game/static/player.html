@@ -34,7 +34,6 @@
 
   .screen { width: 100%; max-width: 480px; animation: fadein 0.25s ease; }
   @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
   .hidden { display: none !important; }
 
   /* ── Register ── */
@@ -63,6 +62,26 @@
   .btn-primary:active { transform: scale(0.98); }
   .btn-primary:disabled { background: #475569; cursor: not-allowed; transform: none; }
 
+  /* ── Waiting screen ── */
+  .waiting-wrap { text-align: center; padding: 20px 0; }
+  .waiting-wrap h2 { font-size: 1.4rem; font-weight: 700; color: var(--purple-light); margin-bottom: 10px; }
+  .waiting-wrap p  { color: var(--muted); font-size: 0.95rem; }
+  .waiting-dots span {
+    display: inline-block; width: 10px; height: 10px; margin: 0 4px;
+    border-radius: 50%; background: var(--purple);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .waiting-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100% { transform: scale(0.6); opacity:0.4; } 40% { transform: scale(1); opacity:1; } }
+
+  /* ── Answered screen ── */
+  .answered-wrap { text-align: center; padding: 40px 24px; }
+  .answered-wrap .ans-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .answered-wrap h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+  .answered-wrap p  { color: var(--muted); margin-bottom: 20px; }
+  .answered-score { font-size: 1rem; color: var(--purple-light); font-weight: 700; }
+
   /* ── Progress bar ── */
   .progress-wrap { margin-bottom: 20px; }
   .progress-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -70,18 +89,6 @@
   .progress-meta .q-num { font-weight: 600; color: var(--purple-light); }
   .progress-bar { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.4s ease; }
-
-  /* ── Timer ── */
-  .timer-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: var(--surface); border: 1.5px solid var(--border);
-    border-radius: 99px; padding: 3px 12px;
-    font-size: 0.88rem; font-weight: 700; color: var(--purple-light);
-    transition: color 0.3s, border-color 0.3s;
-  }
-  .timer-pill.warn   { color: #f59e0b; border-color: #f59e0b; }
-  .timer-pill.urgent { color: var(--red); border-color: var(--red); animation: pulse 1s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
   /* ── Question ── */
   .question-text {
@@ -91,19 +98,16 @@
 
   /* ── Options ── */
   .options { display: flex; flex-direction: column; gap: 10px; }
-
   .opt-btn {
     width: 100%; text-align: left; padding: 15px 18px;
     border-radius: 13px; border: 1.5px solid var(--border);
     background: var(--surface2); color: var(--text);
     font-size: 0.97rem; cursor: pointer; line-height: 1.4;
     transition: border-color 0.15s, background 0.15s, transform 0.1s;
-    position: relative;
   }
   .opt-btn:hover:not(:disabled) { border-color: var(--purple); background: #1e1040; transform: translateX(3px); }
   .opt-btn:active:not(:disabled) { transform: scale(0.98); }
   .opt-btn:disabled { cursor: default; }
-
   .opt-btn.correct { border-color: var(--green); background: #052e16; color: #86efac; }
   .opt-btn.wrong   { border-color: var(--red);   background: #2d0a0a; color: #fca5a5; }
   .opt-btn.dimmed  { opacity: 0.4; }
@@ -115,13 +119,6 @@
   }
   .feedback.correct { color: var(--green); }
   .feedback.wrong   { color: var(--red); }
-
-  /* ── Score pill ── */
-  .score-pill {
-    display: inline-block; background: var(--purple); color: white;
-    font-size: 0.8rem; font-weight: 700; padding: 3px 12px;
-    border-radius: 99px; margin-bottom: 18px;
-  }
 
   /* ── Done screen ── */
   .done-card { text-align: center; }
@@ -151,7 +148,7 @@
 <div id="screen-register" class="screen">
   <div class="brand">
     <h1>Quiz Game</h1>
-    <p>Scan in, answer fast, win!</p>
+    <p>Enter your name to join!</p>
   </div>
   <div class="card">
     <label for="inp-name">Your name</label>
@@ -165,7 +162,18 @@
 <!-- Loading screen -->
 <div id="screen-loading" class="screen hidden">
   <div class="spinner"></div>
-  <p style="text-align:center;color:var(--muted)">Loading questions...</p>
+  <p style="text-align:center;color:var(--muted)">Joining...</p>
+</div>
+
+<!-- Waiting screen — shown between questions or before quiz starts -->
+<div id="screen-waiting" class="screen hidden">
+  <div class="card waiting-wrap">
+    <div class="waiting-dots" style="margin-bottom:24px">
+      <span></span><span></span><span></span>
+    </div>
+    <h2>Waiting for host...</h2>
+    <p id="waiting-msg" style="margin-top:8px">The quiz will start soon. Stay tuned!</p>
+  </div>
 </div>
 
 <!-- Game screen -->
@@ -173,7 +181,6 @@
   <div class="progress-wrap">
     <div class="progress-meta">
       <span class="q-num" id="q-num">Q 1 / 10</span>
-      <span class="timer-pill" id="timer">20:00</span>
       <span id="score-live">Score: 0</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
@@ -185,27 +192,39 @@
   </div>
 </div>
 
+<!-- Answered screen — shown after player answers, waiting for host to advance -->
+<div id="screen-answered" class="screen hidden">
+  <div class="card answered-wrap">
+    <div class="ans-icon" id="ans-icon">✅</div>
+    <h2 id="ans-title">Answer recorded!</h2>
+    <p>Waiting for the host to show the next question...</p>
+    <div class="waiting-dots" style="margin-bottom:16px">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="answered-score" id="ans-score">Score: 0</div>
+  </div>
+</div>
+
 <!-- Done screen -->
 <div id="screen-done" class="screen hidden">
   <div class="card done-card">
     <div class="done-icon" id="done-icon"></div>
     <div class="done-title" id="done-title"></div>
     <div class="done-sub">Your answers have been recorded.<br>Wait for the host to announce results!</div>
-    <button class="btn-primary" style="margin-top:18px" onclick="playAgain()">Play Again (new session)</button>
-    <p id="done-session" style="font-size:0.7rem;color:#475569;margin-top:10px;word-break:break-all"></p>
     <div class="done-score">
       <div><div class="val" id="done-correct">0</div><div class="lbl">Correct</div></div>
       <div><div class="val" id="done-total">0</div><div class="lbl">Questions</div></div>
       <div><div class="val" id="done-pct">0%</div><div class="lbl">Accuracy</div></div>
       <div><div class="val" id="done-time">—</div><div class="lbl">Time</div></div>
     </div>
+    <button class="btn-primary" style="margin-top:8px" onclick="playAgain()">Play Again (new session)</button>
   </div>
 </div>
 
 <script>
-const BASE        = window.location.origin;
-const QUIZ_LIMIT  = 20 * 60; // 20 minutes in seconds
+const BASE = window.location.origin;
 
+// ── Session ID ─────────────────────────────────────────
 let SESSION_ID = localStorage.getItem('qsid');
 if (!SESSION_ID) {
   SESSION_ID = (crypto.randomUUID ? crypto.randomUUID()
@@ -214,43 +233,78 @@ if (!SESSION_ID) {
   localStorage.setItem('qsid', SESSION_ID);
 }
 
-let questions         = [];
-let currentIdx        = 0;
+// ── State ──────────────────────────────────────────────
 let correctCount      = 0;
-let questionStartTime = Date.now();
-let timerSec          = QUIZ_LIMIT;
-let timerInterval     = null;
+let answeredIds       = new Set();   // question IDs answered this session
+let lastQuestionId    = null;        // question ID currently on screen
+let prevStatus        = null;        // previous poll status (to detect transitions)
+let doneFetched       = false;       // guard against double showDone calls
+let pollInterval      = null;
+let registered        = false;
 
 function show(id) {
-  ['register','loading','game','done'].forEach(s =>
+  ['register','loading','waiting','game','answered','done'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('hidden', s !== id));
 }
 
-// ── Countdown timer ───────────────────────────────────
-function startTimer() {
-  timerSec = QUIZ_LIMIT;
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timerSec--;
-    const m   = Math.floor(timerSec / 60);
-    const s   = timerSec % 60;
-    const el  = document.getElementById('timer');
-    el.textContent = `${m}:${String(s).padStart(2,'0')}`;
-    el.className   = timerSec <= 60 ? 'timer-pill urgent'
-                   : timerSec <= 300 ? 'timer-pill warn' : 'timer-pill';
-    if (timerSec <= 0) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      showDone(); // time's up — auto-submit
+// ── Polling ────────────────────────────────────────────
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  poll();
+  pollInterval = setInterval(poll, 1500);
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`${BASE}/api/current-question`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const { status, question, question_num, total } = data;
+
+    // Detect game reset: went from active/answered/finished back to waiting
+    if (prevStatus !== null && prevStatus !== 'waiting' && status === 'waiting') {
+      answeredIds.clear();
+      correctCount   = 0;
+      lastQuestionId = null;
+      doneFetched    = false;
+      prevStatus     = 'waiting';
+      document.getElementById('waiting-msg').textContent =
+        'The host has reset the game. A new round will start soon!';
+      show('waiting');
+      return;
     }
-  }, 1000);
+    prevStatus = status;
+
+    if (status === 'waiting') {
+      const currentScreen = [...document.querySelectorAll('.screen')]
+        .find(el => !el.classList.contains('hidden'))?.id;
+      if (currentScreen !== 'screen-waiting') show('waiting');
+
+    } else if (status === 'active') {
+      if (answeredIds.has(question.id)) {
+        // Already answered — show waiting-for-next screen
+        const currentScreen = [...document.querySelectorAll('.screen')]
+          .find(el => !el.classList.contains('hidden'))?.id;
+        if (currentScreen !== 'screen-answered') show('answered');
+      } else {
+        // New question not yet answered — render it
+        if (lastQuestionId !== question.id) {
+          lastQuestionId = question.id;
+          renderQuestion(question, question_num, total);
+          show('game');
+        }
+      }
+
+    } else if (status === 'finished') {
+      if (!doneFetched) {
+        doneFetched = true;
+        await showDone(total);
+      }
+    }
+  } catch { /* network hiccup — try next tick */ }
 }
 
-function stopTimer() {
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-}
-
-// ── Register ─────────────────────────────────────────
+// ── Register ───────────────────────────────────────────
 async function registerPlayer() {
   const name  = document.getElementById('inp-name').value.trim();
   const phone = document.getElementById('inp-phone').value.trim();
@@ -258,6 +312,7 @@ async function registerPlayer() {
 
   const btn = document.getElementById('btn-join');
   btn.disabled = true; btn.textContent = 'Joining...';
+  show('loading');
 
   try {
     const res  = await fetch(`${BASE}/api/register`, {
@@ -266,40 +321,24 @@ async function registerPlayer() {
     });
     const data = await res.json();
     if (data.status === 'registered' || data.status === 'already_registered') {
-      await loadQuestions();
-    } else { throw new Error('bad status'); }
+      registered = true;
+      localStorage.setItem('pname', name);
+      show('waiting');
+      startPolling();
+    } else {
+      throw new Error('bad status');
+    }
   } catch {
     alert('Registration failed. Try again.');
     btn.disabled = false; btn.textContent = 'Join Game';
-  }
-}
-
-// ── Load questions ────────────────────────────────────
-async function loadQuestions() {
-  show('loading');
-  try {
-    const res = await fetch(`${BASE}/api/questions`);
-    if (!res.ok) throw new Error();
-    questions    = await res.json();
-    currentIdx   = 0;
-    correctCount = 0;
-    show('game');
-    startTimer();
-    renderQuestion();
-  } catch {
-    alert('Failed to load questions. Refresh and try again.');
     show('register');
   }
 }
 
-// ── Render question ───────────────────────────────────
-function renderQuestion() {
-  if (currentIdx >= questions.length) { showDone(); return; }
-
-  const q   = questions[currentIdx];
-  const pct = (currentIdx / questions.length) * 100;
-
-  document.getElementById('q-num').textContent         = `Q ${currentIdx+1} / ${questions.length}`;
+// ── Render question ────────────────────────────────────
+function renderQuestion(q, qNum, total) {
+  const pct = ((qNum - 1) / total) * 100;
+  document.getElementById('q-num').textContent         = `Q ${qNum} / ${total}`;
   document.getElementById('score-live').textContent    = `Score: ${correctCount}`;
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('q-text').textContent        = q.question;
@@ -309,41 +348,31 @@ function renderQuestion() {
   const opts = document.getElementById('options');
   opts.innerHTML = '';
   q.options.forEach(opt => {
-    const btn = document.createElement('button');
+    const btn       = document.createElement('button');
     btn.className   = 'opt-btn';
     btn.textContent = opt;
     btn.onclick     = () => handleAnswer(q.id, opt);
     opts.appendChild(btn);
   });
-  questionStartTime = Date.now();
 }
 
-// ── Handle answer ─────────────────────────────────────
+// ── Handle answer ──────────────────────────────────────
 async function handleAnswer(qId, selected) {
-  const elapsed = Date.now() - questionStartTime;
-
   const allBtns     = document.querySelectorAll('.opt-btn');
   allBtns.forEach(b => b.disabled = true);
   const selectedBtn = [...allBtns].find(b => b.textContent === selected);
   const fb          = document.getElementById('feedback');
 
+  let correct = false;
   try {
     const res = await fetch(`${BASE}/api/answer`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ session_id: SESSION_ID, question_id: qId, selected, elapsed_ms: elapsed })
+      body: JSON.stringify({ session_id: SESSION_ID, question_id: qId, selected })
     });
-    if (!res.ok) { currentIdx++; setTimeout(renderQuestion, 300); return; }
-
     const data = await res.json();
+    correct = !!data.correct;
 
-    if (data.status === 'already_answered') {
-      if (data.correct) correctCount++;
-      currentIdx++;
-      setTimeout(renderQuestion, 250);
-      return;
-    }
-
-    if (data.correct) {
+    if (correct) {
       correctCount++;
       if (selectedBtn) selectedBtn.classList.add('correct');
       allBtns.forEach(b => { if (b !== selectedBtn) b.classList.add('dimmed'); });
@@ -358,27 +387,29 @@ async function handleAnswer(qId, selected) {
       fb.textContent = data.correct_answer ? `✗ Answer: ${data.correct_answer}` : '✗ Wrong!';
       fb.className   = 'feedback wrong';
     }
-
-    currentIdx++;
-    setTimeout(renderQuestion, 1500);
-
   } catch {
-    currentIdx++;
-    setTimeout(renderQuestion, 300);
+    fb.textContent = 'Saved!';
   }
+
+  answeredIds.add(qId);
+
+  // After showing feedback, transition to "answered" waiting screen
+  setTimeout(() => {
+    document.getElementById('ans-icon').textContent  = correct ? '✅' : '📝';
+    document.getElementById('ans-title').textContent = correct ? 'Correct! +1 point' : 'Recorded!';
+    document.getElementById('ans-score').textContent = `Score so far: ${correctCount}`;
+    show('answered');
+  }, 1500);
 }
 
-// ── Done screen ───────────────────────────────────────
-async function showDone() {
-  stopTimer();
-  const total = questions.length;
+// ── Done screen ────────────────────────────────────────
+async function showDone(total) {
   let timeSec = null;
-
   try {
     const res = await fetch(`${BASE}/api/my-score?session_id=${SESSION_ID}`);
     if (res.ok) {
       const sc = await res.json();
-      if (typeof sc.correct === 'number')        correctCount = sc.correct;
+      if (typeof sc.correct        === 'number') correctCount = sc.correct;
       if (typeof sc.total_time_sec === 'number') timeSec      = sc.total_time_sec;
     }
   } catch {}
@@ -398,16 +429,14 @@ async function showDone() {
 
   document.getElementById('done-icon').textContent  = icon;
   document.getElementById('done-title').textContent = title;
-  document.getElementById('done-session').textContent =
-    `Session: ${SESSION_ID}`;
-
   show('done');
   document.getElementById('progress-fill').style.width = '100%';
 }
 
-// ── Play again — keeps old score in leaderboard, just starts a new session ──
+// ── Play again ─────────────────────────────────────────
 function playAgain() {
-  localStorage.removeItem('qsid'); // new UUID on reload, old record stays in DB
+  localStorage.removeItem('qsid');
+  localStorage.removeItem('pname');
   location.reload();
 }
 
@@ -416,6 +445,28 @@ function shake(id) {
   el.style.borderColor = '#ef4444';
   setTimeout(() => { el.style.borderColor = ''; }, 1500);
 }
+
+// ── Auto-rejoin on reload if already registered ────────
+(async function init() {
+  const storedName = localStorage.getItem('pname');
+  if (!SESSION_ID || !storedName) { show('register'); return; }
+
+  // Try to silently re-register with stored name
+  try {
+    const res = await fetch(`${BASE}/api/register`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: storedName, phone: '', session_id: SESSION_ID })
+    });
+    const data = await res.json();
+    if (data.status === 'registered' || data.status === 'already_registered') {
+      registered = true;
+      show('waiting');
+      startPolling();
+      return;
+    }
+  } catch {}
+  show('register');
+})();
 </script>
 </body>
 </html>

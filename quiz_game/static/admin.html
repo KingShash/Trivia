@@ -39,6 +39,34 @@
   .btn-auto.on  { background: #052e16; color: #86efac; border-color: #22c55e; }
   .btn-reset    { background: #1e293b; color: #ef4444; border: 1px solid #ef4444; }
 
+  /* Game Control */
+  .game-ctrl {
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px;
+  }
+  .gc-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+  }
+  .gc-top h2 { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+  .gc-badge {
+    padding: 4px 14px; border-radius: 99px; font-size: 0.82rem; font-weight: 700;
+  }
+  .gc-badge.waiting  { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+  .gc-badge.active   { background: #1c1040; color: #a78bfa; border: 1px solid #7c3aed; }
+  .gc-badge.finished { background: #052e16; color: #86efac; border: 1px solid #22c55e; }
+
+  .gc-question { margin-bottom: 14px; }
+  .gc-q-text   { font-size: 1rem; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+  .gc-q-answer { font-size: 0.85rem; color: #86efac; margin-bottom: 6px; }
+  .gc-q-count  { font-size: 0.85rem; color: #94a3b8; }
+
+  .gc-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-start  { background: #16a34a; color: white; }
+  .btn-next   { background: #7c3aed; color: white; }
+  .btn-finish { background: #b45309; color: white; }
+  .btn-greset { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
   /* QR join box */
   .join-box {
     display: flex; align-items: center; gap: 24px;
@@ -144,6 +172,25 @@
   <button class="btn-winner"  onclick="showWinnerPopup()">🏆 Announce Winner</button>
   <button class="btn-auto"    id="btn-auto" onclick="toggleAuto()">⏱ Auto-refresh: OFF</button>
   <button class="btn-reset"   onclick="resetAll()">🗑 Reset All Data</button>
+</div>
+
+<!-- Game Control -->
+<div class="game-ctrl">
+  <div class="gc-top">
+    <h2>🎮 Game Control</h2>
+    <span class="gc-badge waiting" id="gc-badge">Waiting to start</span>
+  </div>
+  <div class="gc-question" id="gc-question" style="display:none">
+    <div class="gc-q-text" id="gc-q-text"></div>
+    <div class="gc-q-answer" id="gc-q-answer"></div>
+    <div class="gc-q-count" id="gc-q-count"></div>
+  </div>
+  <div class="gc-btns">
+    <button class="btn-start"  id="gc-btn-start"  onclick="gcStart()">▶ Start Quiz</button>
+    <button class="btn-next"   id="gc-btn-next"   onclick="gcNext()"   style="display:none">Next Question →</button>
+    <button class="btn-finish" id="gc-btn-finish" onclick="gcFinish()" style="display:none">⏹ End Quiz</button>
+    <button class="btn-greset"                    onclick="gcReset()">↺ New Round</button>
+  </div>
 </div>
 
 <!-- QR / Join box -->
@@ -336,8 +383,95 @@ async function loadServerInfo() {
   }
 }
 
+// ── Game Control ──────────────────────────────────────
+let gcInterval = null;
+
+async function gcRefresh() {
+  try {
+    const r = await fetch(`${BASE}/admin/game-state`);
+    if (!r.ok) return;
+    const gs = await r.json();
+
+    const badge     = document.getElementById('gc-badge');
+    const qSection  = document.getElementById('gc-question');
+    const btnStart  = document.getElementById('gc-btn-start');
+    const btnNext   = document.getElementById('gc-btn-next');
+    const btnFinish = document.getElementById('gc-btn-finish');
+
+    if (gs.status === 'waiting') {
+      badge.textContent = 'Waiting to start';
+      badge.className   = 'gc-badge waiting';
+      qSection.style.display  = 'none';
+      btnStart.style.display  = '';
+      btnNext.style.display   = 'none';
+      btnFinish.style.display = 'none';
+      clearGcInterval();
+
+    } else if (gs.status === 'active') {
+      badge.textContent = `Question ${gs.current_question} / ${gs.total_questions}`;
+      badge.className   = 'gc-badge active';
+      qSection.style.display  = '';
+      document.getElementById('gc-q-text').textContent   =
+        gs.current_question_text || '';
+      document.getElementById('gc-q-answer').textContent =
+        'Correct answer: ' + (gs.current_correct_answer || '—');
+      document.getElementById('gc-q-count').textContent  =
+        `${gs.answers_for_current} of ${gs.player_count} players answered`;
+      btnStart.style.display  = 'none';
+      const isLast = gs.current_question >= gs.total_questions;
+      btnNext.style.display   = isLast ? 'none' : '';
+      btnFinish.style.display = isLast ? '' : 'none';
+      startGcInterval();
+
+    } else { // finished
+      badge.textContent = 'Quiz Finished!';
+      badge.className   = 'gc-badge finished';
+      qSection.style.display  = 'none';
+      btnStart.style.display  = 'none';
+      btnNext.style.display   = 'none';
+      btnFinish.style.display = 'none';
+      clearGcInterval();
+    }
+  } catch {}
+}
+
+function startGcInterval() {
+  if (gcInterval) return;
+  gcInterval = setInterval(gcRefresh, 3000);
+}
+
+function clearGcInterval() {
+  if (gcInterval) { clearInterval(gcInterval); gcInterval = null; }
+}
+
+async function gcStart() {
+  await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
+  gcRefresh();
+  refresh();
+}
+
+async function gcNext() {
+  await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
+  gcRefresh();
+  refresh();
+}
+
+async function gcFinish() {
+  await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
+  gcRefresh();
+  refresh();
+}
+
+async function gcReset() {
+  if (!confirm('Start a new round? This clears all answers but keeps player names registered.')) return;
+  await fetch(`${BASE}/admin/reset-game`, { method: 'POST' });
+  gcRefresh();
+  refresh();
+}
+
 // Load on open
 loadServerInfo();
+gcRefresh();
 refresh();
 </script>
 </body>
