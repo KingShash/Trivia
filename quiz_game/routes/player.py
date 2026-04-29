@@ -69,12 +69,15 @@ def current_question():
     if cq > total:
         return {"status": "finished", "question": None, "question_num": cq, "total": total}
 
-    q = qs[cq - 1]
+    q      = qs[cq - 1]
+    q_data = {"id": cq, "question": q["question"], "options": q["options"]}
+    if q.get("image"):
+        q_data["image"] = q["image"]
     return {
         "status":       "active",
         "question_num": cq,
         "total":        total,
-        "question":     {"id": cq, "question": q["question"], "options": q["options"]},
+        "question":     q_data,
     }
 
 

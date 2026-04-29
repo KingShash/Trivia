@@ -90,6 +90,16 @@
   .progress-bar { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.4s ease; }
 
+  /* ── Logo image ── */
+  .q-image {
+    text-align: center; margin-bottom: 18px;
+  }
+  .q-image img {
+    width: 140px; height: 140px; object-fit: contain;
+    border-radius: 14px; background: white; padding: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
   /* ── Question ── */
   .question-text {
     font-size: 1.15rem; font-weight: 600; line-height: 1.55;
@@ -186,6 +196,7 @@
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
   </div>
   <div class="card">
+    <div class="q-image" id="q-image" style="display:none"></div>
     <div class="question-text" id="q-text"></div>
     <div class="options" id="options"></div>
     <div class="feedback" id="feedback"></div>
@@ -344,6 +355,16 @@ function renderQuestion(q, qNum, total) {
   document.getElementById('q-text').textContent        = q.question;
   document.getElementById('feedback').textContent      = '';
   document.getElementById('feedback').className        = 'feedback';
+
+  // Show logo image if this question has one
+  const imgWrap = document.getElementById('q-image');
+  if (q.image) {
+    imgWrap.innerHTML     = `<img src="${q.image}" alt="Logo" onerror="this.style.display='none'">`;
+    imgWrap.style.display = '';
+  } else {
+    imgWrap.style.display = 'none';
+    imgWrap.innerHTML     = '';
+  }
 
   const opts = document.getElementById('options');
   opts.innerHTML = '';
