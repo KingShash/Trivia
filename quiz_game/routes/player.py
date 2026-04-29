@@ -43,11 +43,39 @@ def register_player(data: dict):
 @router.get("/questions")
 def get_questions():
     qs = load_questions()
-    # Use 1-based index as id — no id field required in JSON
     return [
         {"id": i + 1, "question": q["question"], "options": q["options"]}
         for i, q in enumerate(qs)
     ]
+
+
+@router.get("/current-question")
+def current_question():
+    """Return the question the host has currently made active (host-controlled flow)."""
+    qs = load_questions()
+    conn = get_connection()
+    try:
+        state = conn.execute(
+            "SELECT current_question FROM game_state WHERE id=1"
+        ).fetchone()
+    finally:
+        conn.close()
+
+    cq    = state["current_question"] if state else 0
+    total = len(qs)
+
+    if cq == 0:
+        return {"status": "waiting", "question": None, "question_num": 0, "total": total}
+    if cq > total:
+        return {"status": "finished", "question": None, "question_num": cq, "total": total}
+
+    q = qs[cq - 1]
+    return {
+        "status":       "active",
+        "question_num": cq,
+        "total":        total,
+        "question":     {"id": cq, "question": q["question"], "options": q["options"]},
+    }
 
 
 @router.post("/answer")

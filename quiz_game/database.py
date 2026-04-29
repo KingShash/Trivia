@@ -37,6 +37,12 @@ def init_db():
             answered_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
             UNIQUE(session_id, question_id)
         );
+        CREATE TABLE IF NOT EXISTS game_state (
+            id                  INTEGER PRIMARY KEY CHECK (id = 1),
+            current_question    INTEGER NOT NULL DEFAULT 0,
+            question_started_at TEXT
+        );
+        INSERT OR IGNORE INTO game_state (id, current_question) VALUES (1, 0);
     """)
     conn.commit()
     conn.close()

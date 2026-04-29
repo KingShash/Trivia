@@ -169,13 +169,114 @@ def export_csv():
     )
 
 
+@router.get("/game-state")
+def admin_game_state():
+    """Current question index + live answer count — polled by admin UI."""
+    try:
+        conn = get_connection()
+        try:
+            state  = conn.execute(
+                "SELECT current_question, question_started_at FROM game_state WHERE id=1"
+            ).fetchone()
+            qs     = load_questions()
+            cq     = state["current_question"] if state else 0
+            total  = len(qs)
+
+            answers_now = 0
+            q_text      = None
+            q_answer    = None
+            if 1 <= cq <= total:
+                row = conn.execute(
+                    "SELECT COUNT(DISTINCT session_id) AS cnt FROM answers WHERE question_id=?",
+                    (cq,)
+                ).fetchone()
+                answers_now = row["cnt"] if row else 0
+                q_text   = qs[cq - 1]["question"]
+                q_answer = qs[cq - 1]["answer"]
+
+            player_count = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM players"
+            ).fetchone()["cnt"]
+        finally:
+            conn.close()
+
+        return {
+            "current_question":    cq,
+            "total_questions":     total,
+            "status":              "waiting" if cq == 0 else ("finished" if cq > total else "active"),
+            "answers_for_current": answers_now,
+            "player_count":        player_count,
+            "current_question_text":   q_text,
+            "current_correct_answer":  q_answer,
+            "question_started_at": state["question_started_at"] if state else None,
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@router.post("/next-question")
+def advance_question():
+    """Advance to the next question (or past the last to signal finish)."""
+    try:
+        conn = get_connection()
+        try:
+            state  = conn.execute(
+                "SELECT current_question FROM game_state WHERE id=1"
+            ).fetchone()
+            next_q = (state["current_question"] if state else 0) + 1
+            conn.execute("""
+                INSERT INTO game_state (id, current_question, question_started_at)
+                VALUES (1, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
+                ON CONFLICT(id) DO UPDATE SET
+                    current_question    = excluded.current_question,
+                    question_started_at = excluded.question_started_at
+            """, (next_q,))
+            conn.commit()
+            total = len(load_questions())
+        finally:
+            conn.close()
+        return {
+            "current_question": next_q,
+            "total_questions":  total,
+            "status":           "finished" if next_q > total else "active",
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@router.post("/reset-game")
+def reset_game():
+    """Reset game to waiting state and wipe answers so players can play again.
+    Player registrations are preserved — players don't need to re-enter their name."""
+    try:
+        conn = get_connection()
+        try:
+            conn.execute("DELETE FROM answers")
+            conn.execute("""
+                INSERT INTO game_state (id, current_question, question_started_at)
+                VALUES (1, 0, NULL)
+                ON CONFLICT(id) DO UPDATE SET current_question=0, question_started_at=NULL
+            """)
+            conn.commit()
+        finally:
+            conn.close()
+        return {"status": "reset", "message": "Game reset — answers cleared, players kept"}
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
 @router.delete("/reset-all")
 def reset_all():
-    """Wipe ALL player data — use before starting a fresh event."""
+    """Wipe ALL data including players — use for a completely fresh event."""
     conn = get_connection()
     try:
         conn.execute("DELETE FROM answers")
         conn.execute("DELETE FROM players")
+        conn.execute("""
+            INSERT INTO game_state (id, current_question, question_started_at)
+            VALUES (1, 0, NULL)
+            ON CONFLICT(id) DO UPDATE SET current_question=0, question_started_at=NULL
+        """)
         conn.commit()
     finally:
         conn.close()
