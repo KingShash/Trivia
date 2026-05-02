@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 import json, os, sys
 
+TIMER_SEC = 10
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from database import get_connection
 
@@ -51,35 +53,56 @@ def get_questions():
 
 @router.get("/current-question")
 def current_question():
-    """Return the question the host has currently made active (host-controlled flow)."""
-    qs = load_questions()
-    conn = get_connection()
+    qs    = load_questions()
+    total = len(qs)
+    conn  = get_connection()
     try:
-        state = conn.execute(
-            "SELECT current_question FROM game_state WHERE id=1"
-        ).fetchone()
+        # Atomic auto-advance: only fires once per question (WHERE guards concurrency)
+        conn.execute("""
+            UPDATE game_state SET
+                current_question    = current_question + 1,
+                question_started_at = CASE WHEN current_question + 1 <= :total
+                                       THEN strftime('%Y-%m-%d %H:%M:%f', 'now') ELSE NULL END
+            WHERE id = 1
+              AND current_question BETWEEN 1 AND :total
+              AND question_started_at IS NOT NULL
+              AND (JULIANDAY('now') - JULIANDAY(question_started_at)) * 86400 >= :timer
+        """, {"total": total, "timer": TIMER_SEC})
+        conn.commit()
+
+        state = conn.execute("""
+            SELECT current_question, question_started_at, question_order,
+                   (JULIANDAY('now') - JULIANDAY(question_started_at)) * 86400 AS elapsed_sec
+            FROM game_state WHERE id=1
+        """).fetchone()
+
+        cq = state["current_question"] if state else 0
+
+        if cq == 0:
+            return {"status": "waiting", "question": None, "question_num": 0, "total": total}
+        if cq > total:
+            return {"status": "finished", "question": None, "question_num": cq, "total": total}
+
+        order      = json.loads(state["question_order"]) if (state and state["question_order"]) else list(range(total))
+        actual_idx = order[cq - 1]
+        q          = qs[actual_idx]
+        elapsed    = float(state["elapsed_sec"] or 0)
+        time_left  = max(0, TIMER_SEC - int(elapsed))
+
+        q_data = {"id": actual_idx + 1, "question": q["question"], "options": q["options"]}
+        if q.get("image"):
+            q_data["image"]    = q["image"]
+            q_data["image_bg"] = q.get("image_bg", "#ffffff")
+
+        return {
+            "status":         "active",
+            "question_num":   cq,
+            "total":          total,
+            "question":       q_data,
+            "time_remaining": time_left,
+        }
     finally:
         conn.close()
-
-    cq    = state["current_question"] if state else 0
-    total = len(qs)
-
-    if cq == 0:
-        return {"status": "waiting", "question": None, "question_num": 0, "total": total}
-    if cq > total:
-        return {"status": "finished", "question": None, "question_num": cq, "total": total}
-
-    q      = qs[cq - 1]
-    q_data = {"id": cq, "question": q["question"], "options": q["options"]}
-    if q.get("image"):
-        q_data["image"]    = q["image"]
-        q_data["image_bg"] = q.get("image_bg", "#ffffff")
-    return {
-        "status":       "active",
-        "question_num": cq,
-        "total":        total,
-        "question":     q_data,
-    }
 
 
 @router.post("/answer")
@@ -95,7 +118,7 @@ def submit_answer(data: dict):
     if question_id < 1 or question_id > len(qs):
         raise HTTPException(status_code=404, detail="Question not found")
 
-    question   = qs[question_id - 1]  # question_id is 1-based
+    question   = qs[question_id - 1]
     is_correct = selected.strip().lower() == question["answer"].strip().lower()
 
     conn = get_connection()
@@ -131,10 +154,9 @@ def my_score(session_id: str):
         if not player:
             return {"correct": 0, "answered": 0, "total_time_sec": 0}
 
-        # Use JULIANDAY for time diff — avoids Python datetime parsing issues
         row = conn.execute("""
             SELECT
-                COUNT(*)                   AS total,
+                COUNT(*)                       AS total,
                 COALESCE(SUM(a.is_correct), 0) AS correct,
                 ROUND(
                     (JULIANDAY(MAX(a.answered_at)) - JULIANDAY(p.joined_at)) * 86400, 1
@@ -156,7 +178,6 @@ def my_score(session_id: str):
 
 @router.delete("/my-session")
 def delete_my_session(session_id: str):
-    """Wipe this player's data so they can start fresh."""
     conn = get_connection()
     try:
         conn.execute("DELETE FROM answers WHERE session_id=?", (session_id,))

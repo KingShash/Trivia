@@ -63,9 +63,17 @@
 
   .gc-btns { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn-start  { background: #16a34a; color: white; }
-  .btn-next   { background: #7c3aed; color: white; }
-  .btn-finish { background: #b45309; color: white; }
   .btn-greset { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+  .gc-timer {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 3px solid #7c3aed; font-size: 1.3rem; font-weight: 700;
+    color: #a78bfa; margin-top: 12px;
+    transition: border-color 0.3s, color 0.3s;
+  }
+  .gc-timer.warn   { border-color: #f59e0b; color: #fbbf24; }
+  .gc-timer.danger { border-color: #ef4444; color: #fca5a5; }
 
   /* QR join box */
   .join-box {
@@ -184,12 +192,11 @@
     <div class="gc-q-text" id="gc-q-text"></div>
     <div class="gc-q-answer" id="gc-q-answer"></div>
     <div class="gc-q-count" id="gc-q-count"></div>
+    <div id="gc-timer" class="gc-timer">10</div>
   </div>
-  <div class="gc-btns">
-    <button class="btn-start"  id="gc-btn-start"  onclick="gcStart()">▶ Start Quiz</button>
-    <button class="btn-next"   id="gc-btn-next"   onclick="gcNext()"   style="display:none">Next Question →</button>
-    <button class="btn-finish" id="gc-btn-finish" onclick="gcFinish()" style="display:none">⏹ End Quiz</button>
-    <button class="btn-greset"                    onclick="gcReset()">↺ New Round</button>
+  <div class="gc-btns" style="margin-top:14px">
+    <button class="btn-start" id="gc-btn-start" onclick="gcStart()">▶ Start Quiz</button>
+    <button class="btn-greset" onclick="gcReset()">↺ New Round</button>
   </div>
 </div>
 
@@ -392,44 +399,38 @@ async function gcRefresh() {
     if (!r.ok) return;
     const gs = await r.json();
 
-    const badge     = document.getElementById('gc-badge');
-    const qSection  = document.getElementById('gc-question');
-    const btnStart  = document.getElementById('gc-btn-start');
-    const btnNext   = document.getElementById('gc-btn-next');
-    const btnFinish = document.getElementById('gc-btn-finish');
+    const badge    = document.getElementById('gc-badge');
+    const qSection = document.getElementById('gc-question');
+    const btnStart = document.getElementById('gc-btn-start');
 
     if (gs.status === 'waiting') {
-      badge.textContent = 'Waiting to start';
-      badge.className   = 'gc-badge waiting';
-      qSection.style.display  = 'none';
-      btnStart.style.display  = '';
-      btnNext.style.display   = 'none';
-      btnFinish.style.display = 'none';
+      badge.textContent          = 'Waiting to start';
+      badge.className            = 'gc-badge waiting';
+      qSection.style.display     = 'none';
+      btnStart.style.display     = '';
       clearGcInterval();
 
     } else if (gs.status === 'active') {
       badge.textContent = `Question ${gs.current_question} / ${gs.total_questions}`;
       badge.className   = 'gc-badge active';
-      qSection.style.display  = '';
-      document.getElementById('gc-q-text').textContent   =
-        gs.current_question_text || '';
-      document.getElementById('gc-q-answer').textContent =
-        'Correct answer: ' + (gs.current_correct_answer || '—');
-      document.getElementById('gc-q-count').textContent  =
-        `${gs.answers_for_current} of ${gs.player_count} players answered`;
-      btnStart.style.display  = 'none';
-      const isLast = gs.current_question >= gs.total_questions;
-      btnNext.style.display   = isLast ? 'none' : '';
-      btnFinish.style.display = isLast ? '' : 'none';
+      qSection.style.display = '';
+      document.getElementById('gc-q-text').textContent   = gs.current_question_text || '';
+      document.getElementById('gc-q-answer').textContent = 'Correct answer: ' + (gs.current_correct_answer || '—');
+      document.getElementById('gc-q-count').textContent  = `${gs.answers_for_current} of ${gs.player_count} players answered`;
+      btnStart.style.display = 'none';
+
+      // Timer display
+      const t   = gs.time_remaining ?? 10;
+      const tel = document.getElementById('gc-timer');
+      tel.textContent = t;
+      tel.className   = 'gc-timer' + (t <= 3 ? ' danger' : t <= 6 ? ' warn' : '');
       startGcInterval();
 
     } else { // finished
-      badge.textContent = 'Quiz Finished!';
-      badge.className   = 'gc-badge finished';
-      qSection.style.display  = 'none';
-      btnStart.style.display  = 'none';
-      btnNext.style.display   = 'none';
-      btnFinish.style.display = 'none';
+      badge.textContent      = 'Quiz Finished!';
+      badge.className        = 'gc-badge finished';
+      qSection.style.display = 'none';
+      btnStart.style.display = 'none';
       clearGcInterval();
     }
   } catch {}
@@ -446,18 +447,7 @@ function clearGcInterval() {
 
 async function gcStart() {
   await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
-  gcRefresh();
-  refresh();
-}
-
-async function gcNext() {
-  await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
-  gcRefresh();
-  refresh();
-}
-
-async function gcFinish() {
-  await fetch(`${BASE}/admin/next-question`, { method: 'POST' });
+  startGcInterval();
   gcRefresh();
   refresh();
 }

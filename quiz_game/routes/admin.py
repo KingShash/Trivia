@@ -1,4 +1,4 @@
-import csv, io, json, os, sys, traceback
+import csv, io, json, os, random, sys, traceback
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from database import get_connection
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+TIMER_SEC = 10
 
 
 def _make_qr_png(url: str) -> bytes:
@@ -24,7 +26,6 @@ def _make_qr_png(url: str) -> bytes:
 
 @router.get("/server-info")
 def server_info(request: Request):
-    # base_url works correctly both locally and when deployed behind HTTPS
     player_url = str(request.base_url)
     return {"player_url": player_url}
 
@@ -69,7 +70,7 @@ def compute_leaderboard():
         r        = dict(r)
         correct  = int(r["correct"]  or 0)
         answered = int(r["answered"] or 0)
-        time_sec = r["time_sec"]  # None when player has no answers
+        time_sec = r["time_sec"]
 
         results.append({
             "name":            r["name"],
@@ -171,28 +172,52 @@ def export_csv():
 
 @router.get("/game-state")
 def admin_game_state():
-    """Current question index + live answer count — polled by admin UI."""
     try:
         conn = get_connection()
         try:
-            state  = conn.execute(
-                "SELECT current_question, question_started_at FROM game_state WHERE id=1"
-            ).fetchone()
-            qs     = load_questions()
-            cq     = state["current_question"] if state else 0
-            total  = len(qs)
+            qs    = load_questions()
+            total = len(qs)
 
-            answers_now = 0
-            q_text      = None
-            q_answer    = None
+            # Same auto-advance check as player poll — keeps admin in sync
+            conn.execute("""
+                UPDATE game_state SET
+                    current_question    = current_question + 1,
+                    question_started_at = CASE WHEN current_question + 1 <= :total
+                                           THEN strftime('%Y-%m-%d %H:%M:%f', 'now') ELSE NULL END
+                WHERE id = 1
+                  AND current_question BETWEEN 1 AND :total
+                  AND question_started_at IS NOT NULL
+                  AND (JULIANDAY('now') - JULIANDAY(question_started_at)) * 86400 >= :timer
+            """, {"total": total, "timer": TIMER_SEC})
+            conn.commit()
+
+            state = conn.execute("""
+                SELECT current_question, question_started_at, question_order,
+                       (JULIANDAY('now') - JULIANDAY(question_started_at)) * 86400 AS elapsed_sec
+                FROM game_state WHERE id=1
+            """).fetchone()
+
+            cq = state["current_question"] if state else 0
+
+            answers_now    = 0
+            q_text         = None
+            q_answer       = None
+            time_remaining = None
+
             if 1 <= cq <= total:
+                order      = json.loads(state["question_order"]) if (state and state["question_order"]) else list(range(total))
+                actual_idx = order[cq - 1]
+                q_text     = qs[actual_idx]["question"]
+                q_answer   = qs[actual_idx]["answer"]
+
                 row = conn.execute(
                     "SELECT COUNT(DISTINCT session_id) AS cnt FROM answers WHERE question_id=?",
-                    (cq,)
+                    (actual_idx + 1,)
                 ).fetchone()
                 answers_now = row["cnt"] if row else 0
-                q_text   = qs[cq - 1]["question"]
-                q_answer = qs[cq - 1]["answer"]
+
+                elapsed        = float(state["elapsed_sec"] or 0)
+                time_remaining = max(0, TIMER_SEC - int(elapsed))
 
             player_count = conn.execute(
                 "SELECT COUNT(*) AS cnt FROM players"
@@ -201,14 +226,15 @@ def admin_game_state():
             conn.close()
 
         return {
-            "current_question":    cq,
-            "total_questions":     total,
-            "status":              "waiting" if cq == 0 else ("finished" if cq > total else "active"),
-            "answers_for_current": answers_now,
-            "player_count":        player_count,
-            "current_question_text":   q_text,
-            "current_correct_answer":  q_answer,
-            "question_started_at": state["question_started_at"] if state else None,
+            "current_question":         cq,
+            "total_questions":          total,
+            "status":                   "waiting" if cq == 0 else ("finished" if cq > total else "active"),
+            "answers_for_current":      answers_now,
+            "player_count":             player_count,
+            "current_question_text":    q_text,
+            "current_correct_answer":   q_answer,
+            "question_started_at":      state["question_started_at"] if state else None,
+            "time_remaining":           time_remaining,
         }
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())
@@ -216,23 +242,35 @@ def admin_game_state():
 
 @router.post("/next-question")
 def advance_question():
-    """Advance to the next question (or past the last to signal finish)."""
+    """Start quiz (0→1) with a fresh shuffle, or manually advance if needed."""
     try:
         conn = get_connection()
         try:
-            state  = conn.execute(
-                "SELECT current_question FROM game_state WHERE id=1"
+            state   = conn.execute(
+                "SELECT current_question, question_order FROM game_state WHERE id=1"
             ).fetchone()
-            next_q = (state["current_question"] if state else 0) + 1
+            current = state["current_question"] if state else 0
+            next_q  = current + 1
+            qs      = load_questions()
+            total   = len(qs)
+
+            # Generate a shuffled order when starting a new game
+            if current == 0:
+                order = list(range(len(qs)))
+                random.shuffle(order)
+                order_json = json.dumps(order)
+            else:
+                order_json = state["question_order"] if state else None
+
             conn.execute("""
-                INSERT INTO game_state (id, current_question, question_started_at)
-                VALUES (1, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
+                INSERT INTO game_state (id, current_question, question_started_at, question_order)
+                VALUES (1, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'), ?)
                 ON CONFLICT(id) DO UPDATE SET
                     current_question    = excluded.current_question,
-                    question_started_at = excluded.question_started_at
-            """, (next_q,))
+                    question_started_at = excluded.question_started_at,
+                    question_order      = excluded.question_order
+            """, (next_q, order_json))
             conn.commit()
-            total = len(load_questions())
         finally:
             conn.close()
         return {
@@ -246,16 +284,16 @@ def advance_question():
 
 @router.post("/reset-game")
 def reset_game():
-    """Reset game to waiting state and wipe answers so players can play again.
-    Player registrations are preserved — players don't need to re-enter their name."""
+    """Reset to waiting state, clear answers. Players stay registered."""
     try:
         conn = get_connection()
         try:
             conn.execute("DELETE FROM answers")
             conn.execute("""
-                INSERT INTO game_state (id, current_question, question_started_at)
-                VALUES (1, 0, NULL)
-                ON CONFLICT(id) DO UPDATE SET current_question=0, question_started_at=NULL
+                INSERT INTO game_state (id, current_question, question_started_at, question_order)
+                VALUES (1, 0, NULL, NULL)
+                ON CONFLICT(id) DO UPDATE SET
+                    current_question=0, question_started_at=NULL, question_order=NULL
             """)
             conn.commit()
         finally:
@@ -273,9 +311,10 @@ def reset_all():
         conn.execute("DELETE FROM answers")
         conn.execute("DELETE FROM players")
         conn.execute("""
-            INSERT INTO game_state (id, current_question, question_started_at)
-            VALUES (1, 0, NULL)
-            ON CONFLICT(id) DO UPDATE SET current_question=0, question_started_at=NULL
+            INSERT INTO game_state (id, current_question, question_started_at, question_order)
+            VALUES (1, 0, NULL, NULL)
+            ON CONFLICT(id) DO UPDATE SET
+                current_question=0, question_started_at=NULL, question_order=NULL
         """)
         conn.commit()
     finally:

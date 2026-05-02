@@ -143,6 +143,19 @@
   .done-score .val { font-size: 1.8rem; font-weight: 700; color: var(--purple-light); }
   .done-score .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 
+  /* ── Timer ring ── */
+  .timer-ring {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 4px solid var(--purple); font-size: 1.5rem; font-weight: 700;
+    color: var(--purple-light); margin-bottom: 14px;
+    transition: border-color 0.4s, color 0.4s;
+    box-shadow: 0 0 18px rgba(124,58,237,0.35);
+  }
+  .timer-ring.warn   { border-color: #f59e0b; color: #fbbf24; box-shadow: 0 0 18px rgba(245,158,11,0.35); }
+  .timer-ring.danger { border-color: var(--red); color: #fca5a5; box-shadow: 0 0 18px rgba(239,68,68,0.35); animation: tpulse 0.5s ease infinite alternate; }
+  @keyframes tpulse  { from { transform: scale(1); } to { transform: scale(1.12); } }
+
   /* ── Loading spinner ── */
   .spinner {
     width: 36px; height: 36px; border: 3px solid var(--border);
@@ -195,6 +208,9 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
   </div>
+  <div style="text-align:center">
+    <div class="timer-ring" id="timer-ring">10</div>
+  </div>
   <div class="card">
     <div class="q-image" id="q-image" style="display:none"></div>
     <div class="question-text" id="q-text"></div>
@@ -246,16 +262,43 @@ if (!SESSION_ID) {
 
 // ── State ──────────────────────────────────────────────
 let correctCount      = 0;
-let answeredIds       = new Set();   // question IDs answered this session
-let lastQuestionId    = null;        // question ID currently on screen
-let prevStatus        = null;        // previous poll status (to detect transitions)
-let doneFetched       = false;       // guard against double showDone calls
+let answeredIds       = new Set();
+let lastQuestionId    = null;
+let prevStatus        = null;
+let doneFetched       = false;
 let pollInterval      = null;
 let registered        = false;
+let clientTimer       = null;
+let clientTimeLeft    = 10;
 
 function show(id) {
   ['register','loading','waiting','game','answered','done'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('hidden', s !== id));
+  if (id !== 'game') stopClientTimer();
+}
+
+function startClientTimer(seconds) {
+  stopClientTimer();
+  clientTimeLeft = seconds;
+  updateTimerRing();
+  clientTimer = setInterval(() => {
+    clientTimeLeft = Math.max(0, clientTimeLeft - 1);
+    updateTimerRing();
+    if (clientTimeLeft === 0) {
+      stopClientTimer();
+      document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+    }
+  }, 1000);
+}
+
+function stopClientTimer() {
+  if (clientTimer) { clearInterval(clientTimer); clientTimer = null; }
+}
+
+function updateTimerRing() {
+  const el = document.getElementById('timer-ring');
+  el.textContent = clientTimeLeft;
+  el.className   = 'timer-ring' + (clientTimeLeft <= 3 ? ' danger' : clientTimeLeft <= 6 ? ' warn' : '');
 }
 
 // ── Polling ────────────────────────────────────────────
@@ -272,13 +315,14 @@ async function poll() {
     const data = await res.json();
     const { status, question, question_num, total } = data;
 
-    // Detect game reset: went from active/answered/finished back to waiting
+    // Detect game reset
     if (prevStatus !== null && prevStatus !== 'waiting' && status === 'waiting') {
       answeredIds.clear();
       correctCount   = 0;
       lastQuestionId = null;
       doneFetched    = false;
       prevStatus     = 'waiting';
+      stopClientTimer();
       document.getElementById('waiting-msg').textContent =
         'The host has reset the game. A new round will start soon!';
       show('waiting');
@@ -293,16 +337,19 @@ async function poll() {
 
     } else if (status === 'active') {
       if (answeredIds.has(question.id)) {
-        // Already answered — show waiting-for-next screen
         const currentScreen = [...document.querySelectorAll('.screen')]
           .find(el => !el.classList.contains('hidden'))?.id;
         if (currentScreen !== 'screen-answered') show('answered');
       } else {
-        // New question not yet answered — render it
         if (lastQuestionId !== question.id) {
+          // New question — render and start fresh timer
           lastQuestionId = question.id;
           renderQuestion(question, question_num, total);
           show('game');
+          startClientTimer(data.time_remaining ?? 10);
+        } else if (clientTimer && Math.abs((data.time_remaining ?? 0) - clientTimeLeft) > 2) {
+          // Sync if client drifted from server by more than 2s
+          startClientTimer(data.time_remaining);
         }
       }
 
