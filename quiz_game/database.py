@@ -46,4 +46,10 @@ def init_db():
         INSERT OR IGNORE INTO game_state (id, current_question) VALUES (1, 0);
     """)
     conn.commit()
+    # Migration: add question_order column to existing deployments
+    try:
+        conn.execute("ALTER TABLE game_state ADD COLUMN question_order TEXT")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     conn.close()

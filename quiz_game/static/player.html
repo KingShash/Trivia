@@ -8,21 +8,25 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface2: #263548;
-    --purple: #7c3aed;
-    --purple-light: #a78bfa;
-    --green: #22c55e;
+    --bg1: #0f0c29;
+    --bg2: #302b63;
+    --bg3: #24243e;
+    --glass: rgba(255,255,255,0.07);
+    --glass-border: rgba(255,255,255,0.13);
+    --purple: #8b5cf6;
+    --purple2: #7c3aed;
+    --pink: #ec4899;
+    --green: #10b981;
     --red: #ef4444;
     --text: #f1f5f9;
     --muted: #94a3b8;
-    --border: #334155;
+    --grad: linear-gradient(135deg, #8b5cf6, #ec4899);
   }
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
+    background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     display: flex;
@@ -32,133 +36,206 @@
     padding: 16px;
   }
 
-  .screen { width: 100%; max-width: 480px; animation: fadein 0.25s ease; }
-  @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  /* Subtle animated background orbs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 400px; height: 400px;
+    background: #8b5cf6;
+    top: -100px; right: -100px;
+    animation: orbmove 12s ease-in-out infinite alternate;
+  }
+  body::after {
+    width: 300px; height: 300px;
+    background: #ec4899;
+    bottom: -80px; left: -80px;
+    animation: orbmove 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes orbmove { from { transform: translate(0,0); } to { transform: translate(40px, 30px); } }
+
+  .screen {
+    width: 100%; max-width: 480px;
+    animation: fadein 0.3s ease;
+    position: relative; z-index: 1;
+  }
+  @keyframes fadein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .hidden { display: none !important; }
 
-  /* ── Register ── */
+  /* ── Glass card ── */
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    padding: 28px 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  /* ── Brand ── */
   .brand { text-align: center; margin-bottom: 28px; }
-  .brand h1 { font-size: 2rem; font-weight: 700; color: var(--purple-light); letter-spacing: -0.5px; }
-  .brand p  { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
+  .brand h1 {
+    font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;
+    background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .brand p { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
 
-  .card { background: var(--surface); border-radius: 18px; padding: 28px 24px; }
-
-  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+  /* ── Inputs ── */
+  label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
   input {
-    width: 100%; padding: 14px 16px; border-radius: 12px;
-    border: 1.5px solid var(--border); background: var(--bg);
+    width: 100%; padding: 14px 16px; border-radius: 13px;
+    border: 1.5px solid var(--glass-border);
+    background: rgba(255,255,255,0.06);
     color: var(--text); font-size: 1rem; margin-bottom: 16px;
     outline: none; transition: border-color 0.2s;
   }
   input:focus { border-color: var(--purple); }
+  input::placeholder { color: rgba(148,163,184,0.5); }
 
+  /* ── Primary button ── */
   .btn-primary {
-    width: 100%; padding: 15px; border-radius: 12px;
-    background: var(--purple); color: white; font-size: 1rem;
-    font-weight: 600; border: none; cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    width: 100%; padding: 15px; border-radius: 13px;
+    background: var(--grad);
+    color: white; font-size: 1rem; font-weight: 700;
+    border: none; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+    letter-spacing: 0.02em;
   }
-  .btn-primary:hover  { background: #6d28d9; }
-  .btn-primary:active { transform: scale(0.98); }
-  .btn-primary:disabled { background: #475569; cursor: not-allowed; transform: none; }
+  .btn-primary:hover  { opacity: 0.88; }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: rgba(255,255,255,0.1); box-shadow: none; cursor: not-allowed; }
 
-  /* ── Waiting screen ── */
-  .waiting-wrap { text-align: center; padding: 20px 0; }
-  .waiting-wrap h2 { font-size: 1.4rem; font-weight: 700; color: var(--purple-light); margin-bottom: 10px; }
-  .waiting-wrap p  { color: var(--muted); font-size: 0.95rem; }
-  .waiting-dots span {
-    display: inline-block; width: 10px; height: 10px; margin: 0 4px;
-    border-radius: 50%; background: var(--purple);
+  /* ── Waiting ── */
+  .waiting-wrap { text-align: center; padding: 28px 0; }
+  .waiting-wrap h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px;
+    background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .waiting-wrap p { color: var(--muted); font-size: 0.95rem; }
+  .dots { display: flex; justify-content: center; gap: 8px; margin: 20px 0; }
+  .dots span {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--grad);
     animation: bounce 1.2s ease-in-out infinite;
   }
-  .waiting-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce { 0%,80%,100% { transform: scale(0.6); opacity:0.4; } 40% { transform: scale(1); opacity:1; } }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100% { transform: scale(0.5); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-  /* ── Answered screen ── */
-  .answered-wrap { text-align: center; padding: 40px 24px; }
-  .answered-wrap .ans-icon { font-size: 3.5rem; margin-bottom: 16px; }
-  .answered-wrap h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
-  .answered-wrap p  { color: var(--muted); margin-bottom: 20px; }
-  .answered-score { font-size: 1rem; color: var(--purple-light); font-weight: 700; }
+  /* ── Timer ring ── */
+  .timer-wrap { text-align: center; margin-bottom: 14px; }
+  .timer-ring {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 66px; height: 66px; border-radius: 50%;
+    border: 4px solid var(--purple);
+    font-size: 1.55rem; font-weight: 800; color: var(--purple);
+    box-shadow: 0 0 20px rgba(139,92,246,0.45);
+    transition: border-color 0.4s, color 0.4s, box-shadow 0.4s;
+  }
+  .timer-ring.warn   { border-color: #f59e0b; color: #fbbf24; box-shadow: 0 0 20px rgba(245,158,11,0.45); }
+  .timer-ring.danger { border-color: var(--red); color: #fca5a5; box-shadow: 0 0 20px rgba(239,68,68,0.45); animation: tpulse 0.5s ease infinite alternate; }
+  @keyframes tpulse  { from { transform: scale(1); } to { transform: scale(1.1); } }
 
   /* ── Progress bar ── */
-  .progress-wrap { margin-bottom: 20px; }
-  .progress-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .progress-meta span { font-size: 0.85rem; color: var(--muted); }
-  .progress-meta .q-num { font-weight: 600; color: var(--purple-light); }
-  .progress-bar { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.4s ease; }
+  .progress-wrap { margin-bottom: 16px; }
+  .progress-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .progress-meta span { font-size: 0.83rem; color: var(--muted); }
+  .progress-meta .q-num { font-weight: 700; color: var(--text); }
+  .progress-bar { height: 5px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--grad); border-radius: 99px; transition: width 0.5s ease; }
 
   /* ── Logo image ── */
-  .q-image {
-    text-align: center; margin-bottom: 18px;
-  }
+  .q-image { text-align: center; margin-bottom: 18px; }
   .q-image img {
-    width: 140px; height: 140px; object-fit: contain;
-    border-radius: 14px; background: white; padding: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    width: 130px; height: 130px; object-fit: contain;
+    border-radius: 18px; padding: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
   }
 
-  /* ── Question ── */
+  /* ── Question text ── */
   .question-text {
-    font-size: 1.15rem; font-weight: 600; line-height: 1.55;
-    margin-bottom: 22px; min-height: 56px;
+    font-size: 1.12rem; font-weight: 700; line-height: 1.55;
+    margin-bottom: 20px; min-height: 52px; color: var(--text);
   }
 
   /* ── Options ── */
   .options { display: flex; flex-direction: column; gap: 10px; }
   .opt-btn {
-    width: 100%; text-align: left; padding: 15px 18px;
-    border-radius: 13px; border: 1.5px solid var(--border);
-    background: var(--surface2); color: var(--text);
-    font-size: 0.97rem; cursor: pointer; line-height: 1.4;
+    width: 100%; text-align: left; padding: 14px 18px;
+    border-radius: 14px; border: 1.5px solid var(--glass-border);
+    background: rgba(255,255,255,0.06);
+    color: var(--text); font-size: 0.96rem; cursor: pointer; line-height: 1.4;
     transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    display: flex; align-items: center; gap: 12px;
   }
-  .opt-btn:hover:not(:disabled) { border-color: var(--purple); background: #1e1040; transform: translateX(3px); }
+  .opt-btn .opt-letter {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: rgba(139,92,246,0.2); color: var(--purple);
+    font-size: 0.8rem; font-weight: 700;
+  }
+  .opt-btn:hover:not(:disabled) {
+    border-color: var(--purple); background: rgba(139,92,246,0.15);
+    transform: translateX(4px);
+  }
+  .opt-btn:hover:not(:disabled) .opt-letter { background: var(--purple); color: white; }
   .opt-btn:active:not(:disabled) { transform: scale(0.98); }
   .opt-btn:disabled { cursor: default; }
-  .opt-btn.correct { border-color: var(--green); background: #052e16; color: #86efac; }
-  .opt-btn.wrong   { border-color: var(--red);   background: #2d0a0a; color: #fca5a5; }
-  .opt-btn.dimmed  { opacity: 0.4; }
+  .opt-btn.correct {
+    border-color: var(--green); background: rgba(16,185,129,0.12);
+    box-shadow: 0 0 16px rgba(16,185,129,0.25);
+  }
+  .opt-btn.correct .opt-letter { background: var(--green); color: white; }
+  .opt-btn.wrong {
+    border-color: var(--red); background: rgba(239,68,68,0.12);
+  }
+  .opt-btn.wrong .opt-letter { background: var(--red); color: white; }
+  .opt-btn.dimmed { opacity: 0.35; }
 
-  /* ── Feedback flash ── */
+  /* ── Feedback ── */
   .feedback {
-    text-align: center; font-size: 1.05rem; font-weight: 600;
-    margin-top: 18px; min-height: 28px; transition: opacity 0.3s;
+    text-align: center; font-size: 1rem; font-weight: 700;
+    margin-top: 16px; min-height: 26px;
   }
   .feedback.correct { color: var(--green); }
   .feedback.wrong   { color: var(--red); }
 
+  /* ── Answer submitted banner ── */
+  .submitted-banner {
+    margin-top: 14px; padding: 10px 16px; border-radius: 12px;
+    background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);
+    text-align: center; font-size: 0.88rem; color: var(--muted);
+    display: none;
+  }
+  .submitted-banner.show { display: block; }
+
   /* ── Done screen ── */
   .done-card { text-align: center; }
-  .done-icon { font-size: 3.5rem; margin-bottom: 14px; }
-  .done-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
-  .done-sub   { color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+  .done-icon  { font-size: 3.5rem; margin-bottom: 14px; }
+  .done-title { font-size: 1.7rem; font-weight: 800; margin-bottom: 6px;
+    background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .done-sub   { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
   .done-score {
-    background: var(--bg); border-radius: 14px; padding: 18px;
+    background: rgba(0,0,0,0.2); border-radius: 16px; padding: 20px;
     margin: 22px 0; display: flex; justify-content: space-around;
+    border: 1px solid var(--glass-border);
   }
   .done-score div { text-align: center; }
-  .done-score .val { font-size: 1.8rem; font-weight: 700; color: var(--purple-light); }
-  .done-score .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .done-score .val { font-size: 1.9rem; font-weight: 800;
+    background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .done-score .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
 
-  /* ── Timer ring ── */
-  .timer-ring {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 64px; height: 64px; border-radius: 50%;
-    border: 4px solid var(--purple); font-size: 1.5rem; font-weight: 700;
-    color: var(--purple-light); margin-bottom: 14px;
-    transition: border-color 0.4s, color 0.4s;
-    box-shadow: 0 0 18px rgba(124,58,237,0.35);
-  }
-  .timer-ring.warn   { border-color: #f59e0b; color: #fbbf24; box-shadow: 0 0 18px rgba(245,158,11,0.35); }
-  .timer-ring.danger { border-color: var(--red); color: #fca5a5; box-shadow: 0 0 18px rgba(239,68,68,0.35); animation: tpulse 0.5s ease infinite alternate; }
-  @keyframes tpulse  { from { transform: scale(1); } to { transform: scale(1.12); } }
-
-  /* ── Loading spinner ── */
+  /* ── Loading ── */
   .spinner {
-    width: 36px; height: 36px; border: 3px solid var(--border);
+    width: 38px; height: 38px;
+    border: 3px solid rgba(255,255,255,0.1);
     border-top-color: var(--purple); border-radius: 50%;
     animation: spin 0.7s linear infinite; margin: 30px auto;
   }
@@ -167,48 +244,47 @@
 </head>
 <body>
 
-<!-- Register screen -->
+<!-- Register -->
 <div id="screen-register" class="screen">
   <div class="brand">
-    <h1>Quiz Game</h1>
-    <p>Enter your name to join!</p>
+    <h1>Quiz Game ✨</h1>
+    <p>Enter your details to join the fun!</p>
   </div>
   <div class="card">
     <label for="inp-name">Your name</label>
     <input id="inp-name" type="text" placeholder="e.g. Rahul Sharma" autocomplete="name" />
-    <label for="inp-phone">Phone number <span style="color:#475569">(optional)</span></label>
+    <label for="inp-phone">Phone number <span style="opacity:.5">(optional)</span></label>
     <input id="inp-phone" type="tel" placeholder="e.g. 9876543210" autocomplete="tel" />
-    <button class="btn-primary" id="btn-join" onclick="registerPlayer()">Join Game</button>
+    <button class="btn-primary" id="btn-join" onclick="registerPlayer()">Join the Quiz 🚀</button>
   </div>
 </div>
 
-<!-- Loading screen -->
+<!-- Loading -->
 <div id="screen-loading" class="screen hidden">
   <div class="spinner"></div>
   <p style="text-align:center;color:var(--muted)">Joining...</p>
 </div>
 
-<!-- Waiting screen — shown between questions or before quiz starts -->
+<!-- Waiting -->
 <div id="screen-waiting" class="screen hidden">
+  <div class="brand"><h1>Quiz Game ✨</h1></div>
   <div class="card waiting-wrap">
-    <div class="waiting-dots" style="margin-bottom:24px">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="dots"><span></span><span></span><span></span></div>
     <h2>Waiting for host...</h2>
     <p id="waiting-msg" style="margin-top:8px">The quiz will start soon. Stay tuned!</p>
   </div>
 </div>
 
-<!-- Game screen -->
+<!-- Game -->
 <div id="screen-game" class="screen hidden">
   <div class="progress-wrap">
     <div class="progress-meta">
       <span class="q-num" id="q-num">Q 1 / 10</span>
-      <span id="score-live">Score: 0</span>
+      <span id="score-live" style="color:var(--purple);font-weight:700">Score: 0</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
   </div>
-  <div style="text-align:center">
+  <div class="timer-wrap">
     <div class="timer-ring" id="timer-ring">10</div>
   </div>
   <div class="card">
@@ -216,23 +292,13 @@
     <div class="question-text" id="q-text"></div>
     <div class="options" id="options"></div>
     <div class="feedback" id="feedback"></div>
-  </div>
-</div>
-
-<!-- Answered screen — shown after player answers, waiting for host to advance -->
-<div id="screen-answered" class="screen hidden">
-  <div class="card answered-wrap">
-    <div class="ans-icon" id="ans-icon">✅</div>
-    <h2 id="ans-title">Answer recorded!</h2>
-    <p>Waiting for the host to show the next question...</p>
-    <div class="waiting-dots" style="margin-bottom:16px">
-      <span></span><span></span><span></span>
+    <div class="submitted-banner" id="submitted-banner">
+      ⏳ Answer saved! Wait for the next question...
     </div>
-    <div class="answered-score" id="ans-score">Score: 0</div>
   </div>
 </div>
 
-<!-- Done screen -->
+<!-- Done -->
 <div id="screen-done" class="screen hidden">
   <div class="card done-card">
     <div class="done-icon" id="done-icon"></div>
@@ -244,42 +310,47 @@
       <div><div class="val" id="done-pct">0%</div><div class="lbl">Accuracy</div></div>
       <div><div class="val" id="done-time">—</div><div class="lbl">Time</div></div>
     </div>
-    <button class="btn-primary" style="margin-top:8px" onclick="playAgain()">Play Again (new session)</button>
+    <button class="btn-primary" style="margin-top:4px" onclick="playAgain()">Play Again 🔄</button>
   </div>
 </div>
 
 <script>
 const BASE = window.location.origin;
 
-// ── Session ID ─────────────────────────────────────────
+// ── Session ID ──────────────────────────────────────────
 let SESSION_ID = localStorage.getItem('qsid');
 if (!SESSION_ID) {
-  SESSION_ID = (crypto.randomUUID ? crypto.randomUUID()
+  SESSION_ID = crypto.randomUUID
+    ? crypto.randomUUID()
     : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
   localStorage.setItem('qsid', SESSION_ID);
 }
 
-// ── State ──────────────────────────────────────────────
-let correctCount      = 0;
-let answeredIds       = new Set();
-let lastQuestionId    = null;
-let prevStatus        = null;
-let doneFetched       = false;
-let pollInterval      = null;
-let registered        = false;
-let clientTimer       = null;
-let clientTimeLeft    = 10;
+// ── State ───────────────────────────────────────────────
+let correctCount   = 0;
+let answeredIds    = new Set();
+let lastQuestionId = null;
+let prevStatus     = null;
+let doneFetched    = false;
+let pollInterval   = null;
+let registered     = false;
+let clientTimer    = null;
+let clientTimeLeft = 10;
 
+const LETTERS = ['A','B','C','D','E'];
+
+// ── Screens ─────────────────────────────────────────────
 function show(id) {
-  ['register','loading','waiting','game','answered','done'].forEach(s =>
+  ['register','loading','waiting','game','done'].forEach(s =>
     document.getElementById('screen-'+s).classList.toggle('hidden', s !== id));
   if (id !== 'game') stopClientTimer();
 }
 
+// ── Timer ────────────────────────────────────────────────
 function startClientTimer(seconds) {
   stopClientTimer();
-  clientTimeLeft = seconds;
+  clientTimeLeft = Math.max(0, seconds);
   updateTimerRing();
   clientTimer = setInterval(() => {
     clientTimeLeft = Math.max(0, clientTimeLeft - 1);
@@ -298,10 +369,11 @@ function stopClientTimer() {
 function updateTimerRing() {
   const el = document.getElementById('timer-ring');
   el.textContent = clientTimeLeft;
-  el.className   = 'timer-ring' + (clientTimeLeft <= 3 ? ' danger' : clientTimeLeft <= 6 ? ' warn' : '');
+  el.className = 'timer-ring' +
+    (clientTimeLeft <= 3 ? ' danger' : clientTimeLeft <= 6 ? ' warn' : '');
 }
 
-// ── Polling ────────────────────────────────────────────
+// ── Polling ──────────────────────────────────────────────
 function startPolling() {
   if (pollInterval) clearInterval(pollInterval);
   poll();
@@ -310,12 +382,12 @@ function startPolling() {
 
 async function poll() {
   try {
-    const res = await fetch(`${BASE}/api/current-question`);
+    const res  = await fetch(`${BASE}/api/current-question`);
     if (!res.ok) return;
     const data = await res.json();
     const { status, question, question_num, total } = data;
 
-    // Detect game reset
+    // Game reset detection
     if (prevStatus !== null && prevStatus !== 'waiting' && status === 'waiting') {
       answeredIds.clear();
       correctCount   = 0;
@@ -331,26 +403,27 @@ async function poll() {
     prevStatus = status;
 
     if (status === 'waiting') {
-      const currentScreen = [...document.querySelectorAll('.screen')]
-        .find(el => !el.classList.contains('hidden'))?.id;
-      if (currentScreen !== 'screen-waiting') show('waiting');
+      const cur = currentScreen();
+      if (cur !== 'screen-waiting') show('waiting');
 
     } else if (status === 'active') {
-      if (answeredIds.has(question.id)) {
-        const currentScreen = [...document.querySelectorAll('.screen')]
-          .find(el => !el.classList.contains('hidden'))?.id;
-        if (currentScreen !== 'screen-answered') show('answered');
-      } else {
-        if (lastQuestionId !== question.id) {
-          // New question — render and start fresh timer
-          lastQuestionId = question.id;
-          renderQuestion(question, question_num, total);
-          show('game');
+      if (lastQuestionId !== question.id) {
+        // New question arrived — always render it fresh
+        lastQuestionId = question.id;
+        const alreadyAnswered = answeredIds.has(question.id);
+        renderQuestion(question, question_num, total, alreadyAnswered);
+        show('game');
+        if (!alreadyAnswered) {
           startClientTimer(data.time_remaining ?? 10);
-        } else if (clientTimer && Math.abs((data.time_remaining ?? 0) - clientTimeLeft) > 2) {
-          // Sync if client drifted from server by more than 2s
-          startClientTimer(data.time_remaining);
+        } else {
+          // Show as disabled if somehow we reconnect mid-question after answering
+          document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+          startClientTimer(data.time_remaining ?? 0);
         }
+      } else if (!answeredIds.has(question.id) && clientTimer &&
+                 Math.abs((data.time_remaining ?? 0) - clientTimeLeft) > 2) {
+        // Sync timer if drifted
+        startClientTimer(data.time_remaining);
       }
 
     } else if (status === 'finished') {
@@ -359,10 +432,15 @@ async function poll() {
         await showDone(total);
       }
     }
-  } catch { /* network hiccup — try next tick */ }
+  } catch { /* network hiccup */ }
 }
 
-// ── Register ───────────────────────────────────────────
+function currentScreen() {
+  return [...document.querySelectorAll('.screen')]
+    .find(el => !el.classList.contains('hidden'))?.id;
+}
+
+// ── Register ─────────────────────────────────────────────
 async function registerPlayer() {
   const name  = document.getElementById('inp-name').value.trim();
   const phone = document.getElementById('inp-phone').value.trim();
@@ -383,27 +461,25 @@ async function registerPlayer() {
       localStorage.setItem('pname', name);
       show('waiting');
       startPolling();
-    } else {
-      throw new Error('bad status');
-    }
+    } else throw new Error('bad status');
   } catch {
     alert('Registration failed. Try again.');
-    btn.disabled = false; btn.textContent = 'Join Game';
+    btn.disabled = false; btn.textContent = 'Join the Quiz 🚀';
     show('register');
   }
 }
 
-// ── Render question ────────────────────────────────────
-function renderQuestion(q, qNum, total) {
+// ── Render question ───────────────────────────────────────
+function renderQuestion(q, qNum, total, alreadyAnswered) {
   const pct = ((qNum - 1) / total) * 100;
-  document.getElementById('q-num').textContent         = `Q ${qNum} / ${total}`;
-  document.getElementById('score-live').textContent    = `Score: ${correctCount}`;
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('q-text').textContent        = q.question;
-  document.getElementById('feedback').textContent      = '';
-  document.getElementById('feedback').className        = 'feedback';
+  document.getElementById('q-num').textContent          = `Q ${qNum} / ${total}`;
+  document.getElementById('score-live').textContent     = `Score: ${correctCount}`;
+  document.getElementById('progress-fill').style.width  = pct + '%';
+  document.getElementById('q-text').textContent         = q.question;
+  document.getElementById('feedback').textContent       = '';
+  document.getElementById('feedback').className         = 'feedback';
+  document.getElementById('submitted-banner').className = 'submitted-banner';
 
-  // Show logo image if this question has one
   const imgWrap = document.getElementById('q-image');
   if (q.image) {
     const bg = q.image_bg || '#ffffff';
@@ -416,25 +492,28 @@ function renderQuestion(q, qNum, total) {
 
   const opts = document.getElementById('options');
   opts.innerHTML = '';
-  q.options.forEach(opt => {
-    const btn       = document.createElement('button');
-    btn.className   = 'opt-btn';
-    btn.textContent = opt;
-    btn.onclick     = () => handleAnswer(q.id, opt);
+  q.options.forEach((opt, i) => {
+    const btn           = document.createElement('button');
+    btn.className       = 'opt-btn';
+    btn.disabled        = !!alreadyAnswered;
+    btn.innerHTML       = `<span class="opt-letter">${LETTERS[i]}</span>${opt}`;
+    btn.dataset.value   = opt;
+    btn.onclick         = () => handleAnswer(q.id, opt);
     opts.appendChild(btn);
   });
 }
 
-// ── Handle answer ──────────────────────────────────────
+// ── Handle answer ─────────────────────────────────────────
 async function handleAnswer(qId, selected) {
-  const allBtns     = document.querySelectorAll('.opt-btn');
+  // Immediately disable all options — player stays on game screen for full timer
+  const allBtns = document.querySelectorAll('.opt-btn');
   allBtns.forEach(b => b.disabled = true);
-  const selectedBtn = [...allBtns].find(b => b.textContent === selected);
-  const fb          = document.getElementById('feedback');
+  const selectedBtn = [...allBtns].find(b => b.dataset.value === selected);
+  const fb = document.getElementById('feedback');
 
   let correct = false;
   try {
-    const res = await fetch(`${BASE}/api/answer`, {
+    const res  = await fetch(`${BASE}/api/answer`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ session_id: SESSION_ID, question_id: qId, selected })
     });
@@ -450,7 +529,7 @@ async function handleAnswer(qId, selected) {
     } else {
       if (selectedBtn) selectedBtn.classList.add('wrong');
       const correctBtn = data.correct_answer
-        ? [...allBtns].find(b => b.textContent === data.correct_answer) : null;
+        ? [...allBtns].find(b => b.dataset.value === data.correct_answer) : null;
       if (correctBtn) correctBtn.classList.add('correct');
       allBtns.forEach(b => { if (b !== selectedBtn && b !== correctBtn) b.classList.add('dimmed'); });
       fb.textContent = data.correct_answer ? `✗ Answer: ${data.correct_answer}` : '✗ Wrong!';
@@ -458,20 +537,16 @@ async function handleAnswer(qId, selected) {
     }
   } catch {
     fb.textContent = 'Saved!';
+    fb.className   = 'feedback';
   }
 
   answeredIds.add(qId);
-
-  // After showing feedback, transition to "answered" waiting screen
-  setTimeout(() => {
-    document.getElementById('ans-icon').textContent  = correct ? '✅' : '📝';
-    document.getElementById('ans-title').textContent = correct ? 'Correct! +1 point' : 'Recorded!';
-    document.getElementById('ans-score').textContent = `Score so far: ${correctCount}`;
-    show('answered');
-  }, 1500);
+  document.getElementById('score-live').textContent = `Score: ${correctCount}`;
+  // Show "waiting" banner — player stays on game screen until timer expires
+  document.getElementById('submitted-banner').className = 'submitted-banner show';
 }
 
-// ── Done screen ────────────────────────────────────────
+// ── Done screen ───────────────────────────────────────────
 async function showDone(total) {
   let timeSec = null;
   try {
@@ -484,25 +559,24 @@ async function showDone(total) {
   } catch {}
 
   const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-
   document.getElementById('done-correct').textContent = correctCount;
   document.getElementById('done-total').textContent   = total;
   document.getElementById('done-pct').textContent     = pct + '%';
   document.getElementById('done-time').textContent    = timeSec !== null ? timeSec + 's' : '—';
 
   let icon, title;
-  if      (pct === 100) { icon = '🏆'; title = 'Perfect score!'; }
-  else if (pct >= 70)   { icon = '🌟'; title = 'Well done!'; }
-  else if (pct >= 40)   { icon = '👍'; title = 'Good effort!'; }
-  else                  { icon = '📚'; title = 'Keep learning!'; }
+  if      (pct === 100) { icon = '🏆'; title = 'Perfect Score!'; }
+  else if (pct >= 70)   { icon = '🌟'; title = 'Well Done!'; }
+  else if (pct >= 40)   { icon = '👍'; title = 'Good Effort!'; }
+  else                  { icon = '📚'; title = 'Keep Learning!'; }
 
   document.getElementById('done-icon').textContent  = icon;
   document.getElementById('done-title').textContent = title;
-  show('done');
   document.getElementById('progress-fill').style.width = '100%';
+  show('done');
 }
 
-// ── Play again ─────────────────────────────────────────
+// ── Play again ────────────────────────────────────────────
 function playAgain() {
   localStorage.removeItem('qsid');
   localStorage.removeItem('pname');
@@ -515,12 +589,10 @@ function shake(id) {
   setTimeout(() => { el.style.borderColor = ''; }, 1500);
 }
 
-// ── Init — always show register screen, pre-fill name if available ────
+// ── Init — always show register, pre-fill name if available ──
 (function init() {
   const storedName = localStorage.getItem('pname');
-  if (storedName) {
-    document.getElementById('inp-name').value = storedName;
-  }
+  if (storedName) document.getElementById('inp-name').value = storedName;
   show('register');
 })();
 </script>
