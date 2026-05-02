@@ -60,7 +60,8 @@
     "image_bg": "#E60023"
   },
   {
-    "question": "if (hungry == true) { eat(); } else { eat(); }\nWhat is the mistake here?",
+    "question": "What is the mistake in this code?",
+    "code": "if (hungry == true) {\n    eat();\n} else {\n    eat();\n}",
     "options": ["Syntax error", "Logic error", "No mistake – real life code", "Missing bracket"],
     "answer": "No mistake – real life code"
   },

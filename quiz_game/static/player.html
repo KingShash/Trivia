@@ -162,8 +162,16 @@
   /* ── Question text ── */
   .question-text {
     font-size: 1.12rem; font-weight: 700; line-height: 1.55;
-    margin-bottom: 20px; min-height: 52px; color: var(--text);
-    white-space: pre-wrap;
+    margin-bottom: 14px; min-height: 52px; color: var(--text);
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    font-family: 'Courier New', Courier, monospace; font-size: 0.93rem;
+    color: #a78bfa; line-height: 1.65; white-space: pre;
+    overflow-x: auto; letter-spacing: 0.01em;
   }
 
   /* ── Options ── */
@@ -291,6 +299,7 @@
   <div class="card">
     <div class="q-image" id="q-image" style="display:none"></div>
     <div class="question-text" id="q-text"></div>
+    <pre class="code-block" id="q-code" style="display:none"></pre>
     <div class="options" id="options"></div>
     <div class="feedback" id="feedback"></div>
     <div class="submitted-banner" id="submitted-banner">
@@ -481,7 +490,9 @@ function renderQuestion(q, qNum, total, alreadyAnswered) {
   document.getElementById('feedback').className         = 'feedback';
   document.getElementById('submitted-banner').className = 'submitted-banner';
 
-  const imgWrap = document.getElementById('q-image');
+  const imgWrap  = document.getElementById('q-image');
+  const codeWrap = document.getElementById('q-code');
+
   if (q.image) {
     const bg = q.image_bg || '#ffffff';
     imgWrap.innerHTML     = `<img src="${q.image}" alt="Logo" style="background:${bg}" onerror="this.style.display='none'">`;
@@ -489,6 +500,14 @@ function renderQuestion(q, qNum, total, alreadyAnswered) {
   } else {
     imgWrap.style.display = 'none';
     imgWrap.innerHTML     = '';
+  }
+
+  if (q.code) {
+    codeWrap.textContent  = q.code;
+    codeWrap.style.display = '';
+  } else {
+    codeWrap.style.display = 'none';
+    codeWrap.textContent   = '';
   }
 
   const opts = document.getElementById('options');

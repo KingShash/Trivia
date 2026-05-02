@@ -93,6 +93,8 @@ def current_question():
         if q.get("image"):
             q_data["image"]    = q["image"]
             q_data["image_bg"] = q.get("image_bg", "#ffffff")
+        if q.get("code"):
+            q_data["code"] = q["code"]
 
         return {
             "status":         "active",
