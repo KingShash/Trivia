@@ -48,19 +48,26 @@ def compute_leaderboard():
     total_q = len(load_questions())
     conn = get_connection()
     try:
+        # Union of sessions in players + sessions in answers ensures
+        # we never miss orphaned answers (e.g. after Reset All Data mid-game)
         rows = conn.execute("""
             SELECT
-                p.name,
-                p.phone,
-                COUNT(a.id)                        AS answered,
-                COALESCE(SUM(a.is_correct), 0)     AS correct,
+                COALESCE(p.name,  '(unknown)') AS name,
+                COALESCE(p.phone, '—')          AS phone,
+                COUNT(a.id)                     AS answered,
+                COALESCE(SUM(a.is_correct), 0)  AS correct,
                 ROUND(
-                    (JULIANDAY(MAX(a.answered_at)) - JULIANDAY(p.joined_at)) * 86400,
+                    (JULIANDAY(MAX(a.answered_at)) - JULIANDAY(MIN(a.answered_at))) * 86400,
                     1
-                )                                  AS time_sec
-            FROM players p
-            LEFT JOIN answers a ON a.session_id = p.session_id
-            GROUP BY p.session_id, p.name, p.phone, p.joined_at
+                )                               AS time_sec
+            FROM (
+                SELECT session_id FROM players
+                UNION
+                SELECT session_id FROM answers
+            ) sess
+            LEFT JOIN players p ON p.session_id = sess.session_id
+            LEFT JOIN answers a ON a.session_id = sess.session_id
+            GROUP BY sess.session_id, p.name, p.phone
         """).fetchall()
     finally:
         conn.close()

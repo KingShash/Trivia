@@ -150,22 +150,16 @@ def submit_answer(data: dict):
 def my_score(session_id: str):
     conn = get_connection()
     try:
-        player = conn.execute(
-            "SELECT name FROM players WHERE session_id=?", (session_id,)
-        ).fetchone()
-        if not player:
-            return {"correct": 0, "answered": 0, "total_time_sec": 0}
-
+        # Works even if player record was deleted (e.g. after Reset All Data)
         row = conn.execute("""
             SELECT
                 COUNT(*)                       AS total,
-                COALESCE(SUM(a.is_correct), 0) AS correct,
+                COALESCE(SUM(is_correct), 0)   AS correct,
                 ROUND(
-                    (JULIANDAY(MAX(a.answered_at)) - JULIANDAY(p.joined_at)) * 86400, 1
+                    (JULIANDAY(MAX(answered_at)) - JULIANDAY(MIN(answered_at))) * 86400, 1
                 ) AS time_sec
-            FROM answers a
-            JOIN players p ON p.session_id = a.session_id
-            WHERE a.session_id = ?
+            FROM answers
+            WHERE session_id = ?
         """, (session_id,)).fetchone()
     finally:
         conn.close()

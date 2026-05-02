@@ -407,6 +407,14 @@ async function poll() {
       stopClientTimer();
       document.getElementById('waiting-msg').textContent =
         'The host has reset the game. A new round will start soon!';
+      // Silently re-register — ensures player record exists even after Reset All Data
+      const storedName = localStorage.getItem('pname');
+      if (storedName && SESSION_ID) {
+        fetch(`${BASE}/api/register`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ name: storedName, phone: '', session_id: SESSION_ID })
+        }).catch(() => {});
+      }
       show('waiting');
       return;
     }
