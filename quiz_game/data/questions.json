@@ -5,26 +5,16 @@
     "answer": "30 minute+ meeting"
   },
   {
-    "question": "Fastest finger test – Spot the odd one out:",
-    "options": ["CAT", "BAT", "CAR", "CTA"],
-    "answer": "CTA"
-  },
-  {
-    "question": "Odd one out:",
-    "options": ["Apple", "Mango", "Potato", "Banana"],
-    "answer": "Potato"
-  },
-  {
-    "question": "Find the mistake in: \"Paris is capital of India\"",
-    "options": ["Paris", "Capital", "India", "No mistake"],
-    "answer": "India"
-  },
-  {
     "question": "Yeh logo kis company ka hai?",
     "options": ["JBL", "Skullcandy", "Beats", "Sony"],
     "answer": "Beats",
     "image": "/static/images/logo-beats.png",
     "image_bg": "#E30B2A"
+  },
+  {
+    "question": "Boss types '??' on Teams — iska matlab?",
+    "options": ["Curious", "Angry", "Immediate panic mode", "Network issue"],
+    "answer": "Immediate panic mode"
   },
   {
     "question": "Yeh logo kis company ka hai?",
@@ -34,11 +24,21 @@
     "image_bg": "#FF5A5F"
   },
   {
+    "question": "Fastest finger test – Spot the odd one out:",
+    "options": ["CAT", "BAT", "CAR", "CTA"],
+    "answer": "CTA"
+  },
+  {
     "question": "Yeh logo kis company ka hai?",
     "options": ["Google Drive", "OneDrive", "Dropbox", "Box"],
     "answer": "Dropbox",
     "image": "/static/images/logo-dropbox.png",
     "image_bg": "#FFFFFF"
+  },
+  {
+    "question": "Employee agr bole 'work 99% complete hai' — iska matlab?",
+    "options": ["Almost done", "Testing left", "50% baaki hai actually", "Deployment ready"],
+    "answer": "50% baaki hai actually"
   },
   {
     "question": "Yeh logo kis company ka hai?",
@@ -48,6 +48,11 @@
     "image_bg": "#1a1d21"
   },
   {
+    "question": "Odd one out:",
+    "options": ["Apple", "Mango", "Potato", "Banana"],
+    "answer": "Potato"
+  },
+  {
     "question": "Yeh logo kis company ka hai?",
     "options": ["PayPal", "Pinterest", "Patreon", "PUMA"],
     "answer": "Pinterest",
@@ -55,10 +60,30 @@
     "image_bg": "#E60023"
   },
   {
+    "question": "if (hungry == true) { eat(); } else { eat(); }\nWhat is the mistake here?",
+    "options": ["Syntax error", "Logic error", "No mistake – real life code", "Missing bracket"],
+    "answer": "No mistake – real life code"
+  },
+  {
     "question": "Yeh logo kis company ka hai?",
     "options": ["Quora", "Qwik", "Quizlet", "Qualcomm"],
     "answer": "Quora",
     "image": "/static/images/logo-quora.png",
     "image_bg": "#B92B27"
+  },
+  {
+    "question": "Find the mistake in: \"Paris is capital of India\"",
+    "options": ["Paris", "Capital", "India", "No mistake"],
+    "answer": "India"
+  },
+  {
+    "question": "Employee: 'We'll need some time' — Client kya sunte hai?",
+    "options": ["Fair enough", "Planned well", "Delay kyun? Jaldi karo!", "Okay, no problem"],
+    "answer": "Delay kyun? Jaldi karo!"
+  },
+  {
+    "question": "Office trip pe jab senior bole 'laptop le aana' — matlab?",
+    "options": ["Just in case", "Safety first", "Kaam pakka karwayenge", "It's optional"],
+    "answer": "Kaam pakka karwayenge"
   }
 ]
